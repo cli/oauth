@@ -12,6 +12,8 @@ import (
 	"github.com/cli/oauth/device"
 )
 
+// DeviceFlow captures the full OAuth Device flow, including prompting the user to copy a one-time
+// code and opening their web browser, and returns an access token upon completion.
 func (oa *OAuthFlow) DeviceFlow() (*api.AccessToken, error) {
 	httpClient := oa.HTTPClient
 	if httpClient == nil {
@@ -32,8 +34,8 @@ func (oa *OAuthFlow) DeviceFlow() (*api.AccessToken, error) {
 		return nil, err
 	}
 
-	fmt.Fprintf(stdout, "First, copy your code: %s\n", code.UserCode)
-	fmt.Fprint(stdout, "Then press [Enter] to continue in the web browser...")
+	fmt.Fprintf(stdout, "First, copy your one-time code: %s\n", code.UserCode)
+	fmt.Fprint(stdout, "Then press [Enter] to continue in the web browser... ")
 	_ = waitForEnter(stdin)
 
 	browseURL := oa.BrowseURL

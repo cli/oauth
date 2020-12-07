@@ -9,6 +9,8 @@ import (
 	"github.com/cli/oauth/webapp"
 )
 
+// WebAppFlow starts a local HTTP server, opens the web browser to initiate the OAuth Web application
+// flow, blocks until the user completes authorization and is redirected back, and returns the access token.
 func (oa *OAuthFlow) WebAppFlow() (*api.AccessToken, error) {
 	flow, err := webapp.InitFlow()
 	if err != nil {

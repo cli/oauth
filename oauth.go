@@ -1,3 +1,5 @@
+// A library for Go client applications that need to perform OAuth authorization against a server,
+// typically GitHub.com.
 package oauth
 
 import (
@@ -52,6 +54,7 @@ func tokenURL(host string) string {
 	return fmt.Sprintf("https://%s/login/oauth/access_token", host)
 }
 
+// DetectFlow tries to perform Device flow first and falls back to Web application flow.
 func (oa *OAuthFlow) DetectFlow() (*api.AccessToken, error) {
 	accessToken, err := oa.DeviceFlow()
 	if errors.Is(err, device.ErrUnsupported) {
