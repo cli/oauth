@@ -56,7 +56,9 @@ func (s *localServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(404)
 		return
 	}
-	defer s.Close()
+	defer func() {
+		_ = s.Close()
+	}()
 
 	params := r.URL.Query()
 	s.resultChan <- CodeResponse{

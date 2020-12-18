@@ -62,7 +62,9 @@ func PostForm(c httpClient, u string, params url.Values) (*FormResponse, error) 
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	r := &FormResponse{
 		StatusCode: resp.StatusCode,
