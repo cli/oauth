@@ -14,7 +14,7 @@ import (
 
 // DeviceFlow captures the full OAuth Device flow, including prompting the user to copy a one-time
 // code and opening their web browser, and returns an access token upon completion.
-func (oa *OAuthFlow) DeviceFlow() (*api.AccessToken, error) {
+func (oa *Flow) DeviceFlow() (*api.AccessToken, error) {
 	httpClient := oa.HTTPClient
 	if httpClient == nil {
 		httpClient = http.DefaultClient

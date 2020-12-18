@@ -17,8 +17,8 @@ type httpClient interface {
 	PostForm(string, url.Values) (*http.Response, error)
 }
 
-// OAuthFlow facilitates a single OAuth authorization flow.
-type OAuthFlow struct {
+// Flow facilitates a single OAuth authorization flow.
+type Flow struct {
 	// The host to authorize the app with.
 	Hostname string
 	// OAuth scopes to request from the user.
@@ -56,7 +56,7 @@ func tokenURL(host string) string {
 }
 
 // DetectFlow tries to perform Device flow first and falls back to Web application flow.
-func (oa *OAuthFlow) DetectFlow() (*api.AccessToken, error) {
+func (oa *Flow) DetectFlow() (*api.AccessToken, error) {
 	accessToken, err := oa.DeviceFlow()
 	if errors.Is(err, device.ErrUnsupported) {
 		return oa.WebAppFlow()
