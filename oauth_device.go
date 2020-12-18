@@ -34,9 +34,16 @@ func (oa *Flow) DeviceFlow() (*api.AccessToken, error) {
 		return nil, err
 	}
 
-	fmt.Fprintf(stdout, "First, copy your one-time code: %s\n", code.UserCode)
-	fmt.Fprint(stdout, "Then press [Enter] to continue in the web browser... ")
-	_ = waitForEnter(stdin)
+	if oa.DisplayCode == nil {
+		fmt.Fprintf(stdout, "First, copy your one-time code: %s\n", code.UserCode)
+		fmt.Fprint(stdout, "Then press [Enter] to continue in the web browser... ")
+		_ = waitForEnter(stdin)
+	} else {
+		err := oa.DisplayCode(code.UserCode, code.VerificationURI)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	browseURL := oa.BrowseURL
 	if browseURL == nil {

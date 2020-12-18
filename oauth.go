@@ -30,10 +30,14 @@ type Flow struct {
 	// The localhost URI for web application flow callback, e.g. "http://127.0.0.1/callback".
 	CallbackURI string
 
-	// Render an HTML page to the user upon completion of web application flow.
-	WriteSuccessHTML func(io.Writer)
+	// Display a one-time code to the user. Receives the code and the browser URL as arguments. Defaults to printing the
+	// code to the user on Stdout with instructions to copy the code and to press Enter to continue in their browser.
+	DisplayCode func(string, string) error
 	// Open a web browser at a URL. Defaults to opening the default system browser.
 	BrowseURL func(string) error
+	// Render an HTML page to the user upon completion of web application flow. The default is to
+	// render a simple message that informs the user they can close the browser tab and return to the app.
+	WriteSuccessHTML func(io.Writer)
 
 	// The HTTP client to use for API POST requests. Defaults to http.DefaultClient.
 	HTTPClient httpClient
