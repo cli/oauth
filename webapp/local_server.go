@@ -12,20 +12,20 @@ type CodeResponse struct {
 	State string
 }
 
-// BindLocalServer initializes a LocalServer that will listen on a randomly available TCP port.
-func BindLocalServer() (*LocalServer, error) {
+// bindLocalServer initializes a LocalServer that will listen on a randomly available TCP port.
+func bindLocalServer() (*localServer, error) {
 	listener, err := net.Listen("tcp4", "127.0.0.1:0")
 	if err != nil {
 		return nil, err
 	}
 
-	return &LocalServer{
+	return &localServer{
 		listener:   listener,
 		resultChan: make(chan CodeResponse, 1),
 	}, nil
 }
 
-type LocalServer struct {
+type localServer struct {
 	CallbackPath     string
 	WriteSuccessHTML func(w io.Writer)
 
@@ -33,24 +33,24 @@ type LocalServer struct {
 	listener   net.Listener
 }
 
-func (s *LocalServer) Port() int {
+func (s *localServer) Port() int {
 	return s.listener.Addr().(*net.TCPAddr).Port
 }
 
-func (s *LocalServer) Close() error {
+func (s *localServer) Close() error {
 	return s.listener.Close()
 }
 
-func (s *LocalServer) Serve() error {
+func (s *localServer) Serve() error {
 	return http.Serve(s.listener, s)
 }
 
-func (s *LocalServer) WaitForCode() (CodeResponse, error) {
+func (s *localServer) WaitForCode() (CodeResponse, error) {
 	return <-s.resultChan, nil
 }
 
 // ServeHTTP implements http.Handler.
-func (s *LocalServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *localServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if s.CallbackPath != "" && r.URL.Path != s.CallbackPath {
 		w.WriteHeader(404)
 		return

@@ -18,14 +18,14 @@ type httpClient interface {
 }
 
 type Flow struct {
-	server   *LocalServer
+	server   *localServer
 	clientID string
 	state    string
 }
 
 // InitFlow creates a new Flow instance by detecting a locally available port number.
 func InitFlow() (*Flow, error) {
-	server, err := BindLocalServer()
+	server, err := bindLocalServer()
 	if err != nil {
 		return nil, err
 	}
