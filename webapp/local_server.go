@@ -7,6 +7,7 @@ import (
 	"net/http"
 )
 
+// CodeResponse represents the code received by the local server's callback handler.
 type CodeResponse struct {
 	Code  string
 	State string

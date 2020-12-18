@@ -1,4 +1,4 @@
-// Package deviceflow facilitates performing OAuth Device Authorization Flow for client applications
+// Package device facilitates performing OAuth Device Authorization Flow for client applications
 // such as CLIs that can not receive redirects from a web site.
 //
 // First, RequestCode should be used to obtain a CodeResponse.
@@ -25,8 +25,10 @@ import (
 )
 
 var (
+	// ErrUnsupported is thrown when the server does not implement Device flow.
 	ErrUnsupported = errors.New("device flow not supported")
-	ErrTimeout     = errors.New("authentication timed out")
+	// ErrTimeout is thrown when polling the server for the granted token has timed out.
+	ErrTimeout = errors.New("authentication timed out")
 )
 
 type httpClient interface {

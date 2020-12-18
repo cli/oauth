@@ -1,3 +1,5 @@
+// Package webapp implements the OAuth Web Application authorization flow for client applications by
+// starting a server at localhost to receive the web redirect after the user has authorized the application.
 package webapp
 
 import (
@@ -17,6 +19,7 @@ type httpClient interface {
 	PostForm(string, url.Values) (*http.Response, error)
 }
 
+// Flow holds the state for the steps of OAuth Web Application flow.
 type Flow struct {
 	server   *localServer
 	clientID string

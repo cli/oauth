@@ -1,5 +1,5 @@
-// A library for Go client applications that need to perform OAuth authorization against a server,
-// typically GitHub.com.
+// Package oauth is a library for Go client applications that need to perform OAuth authorization
+// against a server, typically GitHub.com.
 package oauth
 
 import (
@@ -17,6 +17,7 @@ type httpClient interface {
 	PostForm(string, url.Values) (*http.Response, error)
 }
 
+// OAuthFlow facilitates a single OAuth authorization flow.
 type OAuthFlow struct {
 	// The host to authorize the app with.
 	Hostname string

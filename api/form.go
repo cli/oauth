@@ -26,6 +26,7 @@ func (f FormResponse) Get(k string) string {
 	return f.values.Get(k)
 }
 
+// Err returns an Error object extracted from the response.
 func (f FormResponse) Err() error {
 	return &Error{
 		RequestURI:   f.requestURI,

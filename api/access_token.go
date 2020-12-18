@@ -10,6 +10,7 @@ type AccessToken struct {
 	Scope string
 }
 
+// AccessToken extracts the access token information from a server response.
 func (f FormResponse) AccessToken() (*AccessToken, error) {
 	if accessToken := f.Get("access_token"); accessToken != "" {
 		return &AccessToken{
