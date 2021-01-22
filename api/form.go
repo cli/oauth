@@ -1,8 +1,8 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -19,11 +19,23 @@ type FormResponse struct {
 
 	requestURI string
 	values     url.Values
+
+	json map[string]string
+
+	contentType string
 }
 
 // Get the response value named k.
 func (f FormResponse) Get(k string) string {
-	return f.values.Get(k)
+	if f.contentType == formType {
+		return f.values.Get(k)
+	} else {
+		if v, ok := f.json[k]; ok {
+			return v
+		}
+
+		return ""
+	}
 }
 
 // Err returns an Error object extracted from the response.
@@ -71,19 +83,23 @@ func PostForm(c httpClient, u string, params url.Values) (*FormResponse, error) 
 		requestURI: u,
 	}
 
-	if contentType(resp.Header.Get("Content-Type")) == formType {
-		var bb []byte
-		bb, err = ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return r, err
-		}
+	var bb []byte
+	bb, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return r, err
+	}
 
+	ct := contentType(resp.Header.Get("Content-Type"))
+	r.contentType = ct
+	if ct == formType {
 		r.values, err = url.ParseQuery(string(bb))
 		if err != nil {
 			return r, err
 		}
-	} else {
-		_, err = io.Copy(ioutil.Discard, resp.Body)
+	} else if ct == jsonType {
+		jObj := make(map[string]string)
+		err := json.Unmarshal(bb, &jObj)
+		r.json = jObj
 		if err != nil {
 			return r, err
 		}
@@ -93,6 +109,7 @@ func PostForm(c httpClient, u string, params url.Values) (*FormResponse, error) 
 }
 
 const formType = "application/x-www-form-urlencoded"
+const jsonType = "application/json"
 
 func contentType(t string) string {
 	if i := strings.IndexRune(t, ';'); i >= 0 {
