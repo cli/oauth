@@ -84,8 +84,7 @@ func (flow *Flow) StartServer(writeSuccess func(io.Writer)) error {
 	return flow.server.Serve()
 }
 
-// AccessToken blocks until the browser flow has completed and returns the access token.
-func (flow *Flow) AccessToken(c httpClient, tokenURL, clientSecret string) (*api.AccessToken, error) {
+func (flow *Flow) AccessTokenWithParams(c httpClient, tokenURL, clientSecret string, postParams url.Values) (*api.AccessToken, error) {
 	code, err := flow.server.WaitForCode()
 	if err != nil {
 		return nil, err
@@ -94,18 +93,26 @@ func (flow *Flow) AccessToken(c httpClient, tokenURL, clientSecret string) (*api
 		return nil, errors.New("state mismatch")
 	}
 
-	resp, err := api.PostForm(c, tokenURL,
-		url.Values{
-			"client_id":     {flow.clientID},
-			"client_secret": {clientSecret},
-			"code":          {code.Code},
-			"state":         {flow.state},
-		})
+	if postParams == nil {
+		postParams = url.Values{}
+	}
+
+	postParams["client_id"] = []string{flow.clientID}
+	postParams["client_secret"] = []string{clientSecret}
+	postParams["code"] = []string{code.Code}
+	postParams["state"] = []string{flow.state}
+
+	resp, err := api.PostForm(c, tokenURL, postParams)
 	if err != nil {
 		return nil, err
 	}
 
 	return resp.AccessToken()
+}
+
+// AccessToken blocks until the browser flow has completed and returns the access token.
+func (flow *Flow) AccessToken(c httpClient, tokenURL, clientSecret string) (*api.AccessToken, error) {
+	return flow.AccessTokenWithParams(c, tokenURL, clientSecret, nil)
 }
 
 func randomString(length int) (string, error) {
