@@ -20,7 +20,7 @@ type FormResponse struct {
 	requestURI string
 	values     url.Values
 
-	json map[string]string
+	json map[string]interface{}
 
 	contentType string
 }
@@ -31,7 +31,7 @@ func (f FormResponse) Get(k string) string {
 		return f.values.Get(k)
 	} else {
 		if v, ok := f.json[k]; ok {
-			return v
+			return v.(string)
 		}
 
 		return ""
@@ -97,7 +97,7 @@ func PostForm(c httpClient, u string, params url.Values) (*FormResponse, error) 
 			return r, err
 		}
 	} else if ct == jsonType {
-		jObj := make(map[string]string)
+		jObj := make(map[string]interface{})
 		err := json.Unmarshal(bb, &jObj)
 		r.json = jObj
 		if err != nil {
