@@ -4,7 +4,6 @@ package oauth
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -20,7 +19,12 @@ type httpClient interface {
 // Flow facilitates a single OAuth authorization flow.
 type Flow struct {
 	// The host to authorize the app with.
+	//
+	// Deprecated: Use Server instead. If Server is not present and Hostname is set, Server will be automatically
+	// populated using ServerGitHub(Hostname).
 	Hostname string
+	// The server to authorize the app with.
+	Server *Server
 	// OAuth scopes to request from the user.
 	Scopes []string
 	// OAuth application ID.
@@ -45,18 +49,6 @@ type Flow struct {
 	Stdin io.Reader
 	// The stream to print UI messages to. Defaults to os.Stdout.
 	Stdout io.Writer
-}
-
-func deviceInitURL(host string) string {
-	return fmt.Sprintf("https://%s/login/device/code", host)
-}
-
-func webappInitURL(host string) string {
-	return fmt.Sprintf("https://%s/login/oauth/authorize", host)
-}
-
-func tokenURL(host string) string {
-	return fmt.Sprintf("https://%s/login/oauth/access_token", host)
 }
 
 // DetectFlow tries to perform Device flow first and falls back to Web application flow.
