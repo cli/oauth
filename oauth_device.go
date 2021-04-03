@@ -28,8 +28,12 @@ func (oa *Flow) DeviceFlow() (*api.AccessToken, error) {
 	if stdout == nil {
 		stdout = os.Stdout
 	}
+	host := oa.Host
+	if host == nil {
+		host = GitHubHost("https://" + oa.Hostname)
+	}
 
-	code, err := device.RequestCode(httpClient, deviceInitURL(oa.Hostname), oa.ClientID, oa.Scopes)
+	code, err := device.RequestCode(httpClient, host.DeviceCodeURL, oa.ClientID, oa.Scopes)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +58,7 @@ func (oa *Flow) DeviceFlow() (*api.AccessToken, error) {
 		return nil, fmt.Errorf("error opening the web browser: %w", err)
 	}
 
-	return device.PollToken(httpClient, tokenURL(oa.Hostname), oa.ClientID, code)
+	return device.PollToken(httpClient, host.TokenURL, oa.ClientID, code)
 }
 
 func waitForEnter(r io.Reader) error {

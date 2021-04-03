@@ -12,6 +12,11 @@ import (
 // WebAppFlow starts a local HTTP server, opens the web browser to initiate the OAuth Web application
 // flow, blocks until the user completes authorization and is redirected back, and returns the access token.
 func (oa *Flow) WebAppFlow() (*api.AccessToken, error) {
+	host := oa.Host
+	if host == nil {
+		host = GitHubHost("https://" + oa.Hostname)
+	}
+
 	flow, err := webapp.InitFlow()
 	if err != nil {
 		return nil, err
@@ -23,7 +28,7 @@ func (oa *Flow) WebAppFlow() (*api.AccessToken, error) {
 		Scopes:      oa.Scopes,
 		AllowSignup: true,
 	}
-	browserURL, err := flow.BrowserURL(webappInitURL(oa.Hostname), params)
+	browserURL, err := flow.BrowserURL(host.AuthorizeURL, params)
 	if err != nil {
 		return nil, err
 	}
@@ -47,5 +52,5 @@ func (oa *Flow) WebAppFlow() (*api.AccessToken, error) {
 		httpClient = http.DefaultClient
 	}
 
-	return flow.AccessToken(httpClient, tokenURL(oa.Hostname), oa.ClientSecret)
+	return flow.AccessToken(httpClient, host.TokenURL, oa.ClientSecret)
 }
