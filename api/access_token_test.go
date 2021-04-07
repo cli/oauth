@@ -1,7 +1,6 @@
 package api
 
 import (
-	"net/url"
 	"reflect"
 	"testing"
 )
@@ -16,10 +15,10 @@ func TestFormResponse_AccessToken(t *testing.T) {
 		{
 			name: "with token",
 			response: FormResponse{
-				values: url.Values{
-					"access_token": []string{"ATOKEN"},
-					"token_type":   []string{"bearer"},
-					"scope":        []string{"repo gist"},
+				values: map[string]string{
+					"access_token": "ATOKEN",
+					"token_type":   "bearer",
+					"scope":        "repo gist",
 				},
 			},
 			want: &AccessToken{
@@ -33,8 +32,8 @@ func TestFormResponse_AccessToken(t *testing.T) {
 			name: "no token",
 			response: FormResponse{
 				StatusCode: 200,
-				values: url.Values{
-					"error": []string{"access_denied"},
+				values: map[string]string{
+					"error": "access_denied",
 				},
 			},
 			want: nil,
