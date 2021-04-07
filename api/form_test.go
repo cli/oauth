@@ -25,8 +25,8 @@ func TestFormResponse_Get(t *testing.T) {
 		{
 			name: "with value",
 			response: FormResponse{
-				values: url.Values{
-					"access_token": []string{"ATOKEN"},
+				values: map[string]string{
+					"access_token": "ATOKEN",
 				},
 			},
 			key:  "access_token",
@@ -60,9 +60,9 @@ func TestFormResponse_Err(t *testing.T) {
 			response: FormResponse{
 				StatusCode: 422,
 				requestURI: "http://example.com/path",
-				values: url.Values{
-					"error":             []string{"try_again"},
-					"error_description": []string{"maybe it works later"},
+				values: map[string]string{
+					"error":             "try_again",
+					"error_description": "maybe it works later",
 				},
 			},
 			wantErr: Error{
@@ -153,9 +153,9 @@ func TestPostForm(t *testing.T) {
 			want: &FormResponse{
 				StatusCode: 200,
 				requestURI: "https://github.com/oauth",
-				values: url.Values{
-					"access_token": {"123abc"},
-					"scopes":       {"repo gist"},
+				values: map[string]string{
+					"access_token": "123abc",
+					"scopes":       "repo gist",
 				},
 			},
 			wantErr: false,
@@ -173,7 +173,7 @@ func TestPostForm(t *testing.T) {
 			want: &FormResponse{
 				StatusCode: 502,
 				requestURI: "https://github.com/oauth",
-				values:     url.Values(nil),
+				values:     make(map[string]string),
 			},
 			wantErr: false,
 		},
