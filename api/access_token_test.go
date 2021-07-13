@@ -23,9 +23,28 @@ func TestFormResponse_AccessToken(t *testing.T) {
 				},
 			},
 			want: &AccessToken{
-				Token: "ATOKEN",
-				Type:  "bearer",
-				Scope: "repo gist",
+				Token:        "ATOKEN",
+				RefreshToken: "",
+				Type:         "bearer",
+				Scope:        "repo gist",
+			},
+			wantErr: nil,
+		},
+		{
+			name: "with refresh token",
+			response: FormResponse{
+				values: url.Values{
+					"access_token":  []string{"ATOKEN"},
+					"refresh_token": []string{"AREFRESHTOKEN"},
+					"token_type":    []string{"bearer"},
+					"scope":         []string{"repo gist"},
+				},
+			},
+			want: &AccessToken{
+				Token:        "ATOKEN",
+				RefreshToken: "AREFRESHTOKEN",
+				Type:         "bearer",
+				Scope:        "repo gist",
 			},
 			wantErr: nil,
 		},
