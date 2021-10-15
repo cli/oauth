@@ -1,12 +1,14 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"mime"
 	"net/http"
 	"net/url"
-	"strings"
+	"strconv"
 )
 
 type httpClient interface {
@@ -71,7 +73,9 @@ func PostForm(c httpClient, u string, params url.Values) (*FormResponse, error) 
 		requestURI: u,
 	}
 
-	if contentType(resp.Header.Get("Content-Type")) == formType {
+	mediaType, _, _ := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+	switch mediaType {
+	case "application/x-www-form-urlencoded":
 		var bb []byte
 		bb, err = ioutil.ReadAll(resp.Body)
 		if err != nil {
@@ -82,7 +86,24 @@ func PostForm(c httpClient, u string, params url.Values) (*FormResponse, error) 
 		if err != nil {
 			return r, err
 		}
-	} else {
+	case "application/json":
+		var values map[string]interface{}
+		if err := json.NewDecoder(resp.Body).Decode(&values); err != nil {
+			return r, err
+		}
+
+		r.values = make(url.Values)
+		for key, value := range values {
+			switch v := value.(type) {
+			case string:
+				r.values.Set(key, v)
+			case int64:
+				r.values.Set(key, strconv.FormatInt(v, 10))
+			case float64:
+				r.values.Set(key, strconv.FormatFloat(v, 'f', -1, 64))
+			}
+		}
+	default:
 		_, err = io.Copy(ioutil.Discard, resp.Body)
 		if err != nil {
 			return r, err
@@ -90,13 +111,4 @@ func PostForm(c httpClient, u string, params url.Values) (*FormResponse, error) 
 	}
 
 	return r, nil
-}
-
-const formType = "application/x-www-form-urlencoded"
-
-func contentType(t string) string {
-	if i := strings.IndexRune(t, ';'); i >= 0 {
-		return t[0:i]
-	}
-	return t
 }

@@ -17,10 +17,32 @@ type httpClient interface {
 	PostForm(string, url.Values) (*http.Response, error)
 }
 
+// Host defines the endpoints used to authorize against an OAuth server.
+type Host struct {
+	DeviceCodeURL string
+	AuthorizeURL  string
+	TokenURL      string
+}
+
+// GitHubHost constructs a Host from the given URL to a GitHub instance.
+func GitHubHost(hostURL string) *Host {
+	u, _ := url.Parse(hostURL)
+
+	return &Host{
+		DeviceCodeURL: fmt.Sprintf("%s://%s/login/device/code", u.Scheme, u.Host),
+		AuthorizeURL:  fmt.Sprintf("%s://%s/login/oauth/authorize", u.Scheme, u.Host),
+		TokenURL:      fmt.Sprintf("%s://%s/login/oauth/access_token", u.Scheme, u.Host),
+	}
+}
+
 // Flow facilitates a single OAuth authorization flow.
 type Flow struct {
-	// The host to authorize the app with.
+	// The hostname to authorize the app with.
+	//
+	// Deprecated: Use Host instead.
 	Hostname string
+	// Host configuration to authorize the app with.
+	Host *Host
 	// OAuth scopes to request from the user.
 	Scopes []string
 	// OAuth application ID.
@@ -45,18 +67,6 @@ type Flow struct {
 	Stdin io.Reader
 	// The stream to print UI messages to. Defaults to os.Stdout.
 	Stdout io.Writer
-}
-
-func deviceInitURL(host string) string {
-	return fmt.Sprintf("https://%s/login/device/code", host)
-}
-
-func webappInitURL(host string) string {
-	return fmt.Sprintf("https://%s/login/oauth/authorize", host)
-}
-
-func tokenURL(host string) string {
-	return fmt.Sprintf("https://%s/login/oauth/access_token", host)
 }
 
 // DetectFlow tries to perform Device flow first and falls back to Web application flow.

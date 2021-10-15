@@ -141,7 +141,7 @@ func TestPostForm(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "success",
+			name: "success urlencoded",
 			args: args{
 				url: "https://github.com/oauth",
 			},
@@ -149,6 +149,26 @@ func TestPostForm(t *testing.T) {
 				body:        "access_token=123abc&scopes=repo%20gist",
 				status:      200,
 				contentType: "application/x-www-form-urlencoded; charset=utf-8",
+			},
+			want: &FormResponse{
+				StatusCode: 200,
+				requestURI: "https://github.com/oauth",
+				values: url.Values{
+					"access_token": {"123abc"},
+					"scopes":       {"repo gist"},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "success JSON",
+			args: args{
+				url: "https://github.com/oauth",
+			},
+			http: apiClient{
+				body:        `{"access_token":"123abc", "scopes":"repo gist"}`,
+				status:      200,
+				contentType: "application/json; charset=utf-8",
 			},
 			want: &FormResponse{
 				StatusCode: 200,
