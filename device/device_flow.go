@@ -65,6 +65,10 @@ func RequestCode(c httpClient, uri string, clientID string, scopes []string) (*C
 	}
 
 	verificationURI := resp.Get("verification_uri")
+	if verificationURI == "" {
+		// Google's "OAuth 2.0 for TV and Limited-Input Device Applications" uses `verification_url`.
+		verificationURI = resp.Get("verification_url")
+	}
 
 	if resp.StatusCode == 401 || resp.StatusCode == 403 || resp.StatusCode == 404 || resp.StatusCode == 422 ||
 		(resp.StatusCode == 200 && verificationURI == "") ||
@@ -98,7 +102,7 @@ func RequestCode(c httpClient, uri string, clientID string, scopes []string) (*C
 const grantType = "urn:ietf:params:oauth:grant-type:device_code"
 
 // PollToken polls the server at pollURL until an access token is granted or denied.
-func PollToken(c httpClient, pollURL string, clientID string, code *CodeResponse) (*api.AccessToken, error) {
+func PollToken(c httpClient, pollURL string, clientID string, clientSecret *string, code *CodeResponse) (*api.AccessToken, error) {
 	timeNow := code.timeNow
 	if timeNow == nil {
 		timeNow = time.Now
@@ -114,11 +118,18 @@ func PollToken(c httpClient, pollURL string, clientID string, code *CodeResponse
 	for {
 		timeSleep(checkInterval)
 
-		resp, err := api.PostForm(c, pollURL, url.Values{
+		values := url.Values{
 			"client_id":   {clientID},
 			"device_code": {code.DeviceCode},
 			"grant_type":  {grantType},
-		})
+		}
+
+		// Google's "OAuth 2.0 for TV and Limited-Input Device Applications" requires `client_secret`.
+		if clientSecret != nil {
+			values.Add("client_secret", *clientSecret)
+		}
+
+		resp, err := api.PostForm(c, pollURL, values)
 		if err != nil {
 			return nil, err
 		}

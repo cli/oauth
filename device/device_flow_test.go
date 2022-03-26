@@ -371,7 +371,7 @@ func TestPollToken(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			totalSlept = 0
-			got, err := PollToken(&tt.args.http, tt.args.url, tt.args.clientID, tt.args.code)
+			got, err := PollToken(&tt.args.http, tt.args.url, tt.args.clientID, nil, tt.args.code)
 			if (err != nil) != (tt.wantErr != "") {
 				t.Errorf("PollToken() error = %v, wantErr %v", err, tt.wantErr)
 				return
