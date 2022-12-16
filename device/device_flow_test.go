@@ -366,7 +366,7 @@ func TestPollToken(t *testing.T) {
 						DeviceCode:      "DEVIC",
 						UserCode:        "123-abc",
 						VerificationURI: "http://verify.me",
-						ExpiresIn:       12,
+						ExpiresIn:       14,
 						Interval:        5,
 					},
 					modifyDuration: secondsToMs,
