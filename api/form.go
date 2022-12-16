@@ -1,3 +1,4 @@
+// Package api implements request and response parsing logic shared between different OAuth strategies.
 package api
 
 import (

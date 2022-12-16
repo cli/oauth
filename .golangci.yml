@@ -2,7 +2,7 @@ linters:
   enable:
     - gofmt
     - godot
-    - golint
+    - revive
 
 linters-settings:
   godot:
