@@ -91,6 +91,40 @@ func TestRequestCode(t *testing.T) {
 			},
 		},
 		{
+			name: "with verification_uri_complete",
+			args: args{
+				http: apiClient{
+					stubs: []apiStub{
+						{
+							body:        "verification_uri=http://verify.me&interval=5&expires_in=99&device_code=DEVIC&user_code=123-abc&verification_uri_complete=http://verify.me/?code=123-abc",
+							status:      200,
+							contentType: "application/x-www-form-urlencoded; charset=utf-8",
+						},
+					},
+				},
+				url:      "https://github.com/oauth",
+				clientID: "CLIENT-ID",
+				scopes:   []string{"repo", "gist"},
+			},
+			want: &CodeResponse{
+				DeviceCode:              "DEVIC",
+				UserCode:                "123-abc",
+				VerificationURI:         "http://verify.me",
+				VerificationURIComplete: "http://verify.me/?code=123-abc",
+				ExpiresIn:               99,
+				Interval:                5,
+			},
+			posts: []postArgs{
+				{
+					url: "https://github.com/oauth",
+					params: url.Values{
+						"client_id": {"CLIENT-ID"},
+						"scope":     {"repo gist"},
+					},
+				},
+			},
+		},
+		{
 			name: "unsupported",
 			args: args{
 				http: apiClient{
