@@ -16,17 +16,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set up Go 1.15
-        uses: actions/setup-go@v2
+      - name: Set up Go 1.19
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.15
+          go-version: 1.19
 
       - name: Check out code
         uses: actions/checkout@v2
 
       - name: Verify dependencies
         env:
-          LINT_VERSION: 1.33.0
+          LINT_VERSION: 1.50.1
         run: |
           go mod verify
           go mod download
