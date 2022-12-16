@@ -41,6 +41,8 @@ type CodeResponse struct {
 	UserCode string
 	// The verification URL where users need to enter the UserCode.
 	VerificationURI string
+	// The optional verification URL that includes the UserCode.
+	VerificationURIComplete string
 
 	// The device verification code is 40 characters and used to verify the device.
 	DeviceCode string
@@ -87,11 +89,12 @@ func RequestCode(c httpClient, uri string, clientID string, scopes []string) (*C
 	}
 
 	return &CodeResponse{
-		DeviceCode:      resp.Get("device_code"),
-		UserCode:        resp.Get("user_code"),
-		VerificationURI: verificationURI,
-		Interval:        intervalSeconds,
-		ExpiresIn:       expiresIn,
+		DeviceCode:              resp.Get("device_code"),
+		UserCode:                resp.Get("user_code"),
+		VerificationURI:         verificationURI,
+		VerificationURIComplete: resp.Get("verification_uri_complete"),
+		Interval:                intervalSeconds,
+		ExpiresIn:               expiresIn,
 	}, nil
 }
 
