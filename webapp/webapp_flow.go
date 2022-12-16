@@ -3,6 +3,7 @@
 package webapp
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -85,8 +86,21 @@ func (flow *Flow) StartServer(writeSuccess func(io.Writer)) error {
 }
 
 // AccessToken blocks until the browser flow has completed and returns the access token.
+//
+// Deprecated: use Wait.
 func (flow *Flow) AccessToken(c httpClient, tokenURL, clientSecret string) (*api.AccessToken, error) {
-	code, err := flow.server.WaitForCode()
+	return flow.Wait(context.Background(), c, tokenURL, WaitOptions{ClientSecret: clientSecret})
+}
+
+// WaitOptions specifies parameters to exchange the access token for.
+type WaitOptions struct {
+	// ClientSecret is the app client secret value.
+	ClientSecret string
+}
+
+// Wait blocks until the browser flow has completed and returns the access token.
+func (flow *Flow) Wait(ctx context.Context, c httpClient, tokenURL string, opts WaitOptions) (*api.AccessToken, error) {
+	code, err := flow.server.WaitForCode(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +111,7 @@ func (flow *Flow) AccessToken(c httpClient, tokenURL, clientSecret string) (*api
 	resp, err := api.PostForm(c, tokenURL,
 		url.Values{
 			"client_id":     {flow.clientID},
-			"client_secret": {clientSecret},
+			"client_secret": {opts.ClientSecret},
 			"code":          {code.Code},
 			"state":         {flow.state},
 		})

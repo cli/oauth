@@ -13,6 +13,7 @@
 package device
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -103,16 +104,16 @@ const defaultGrantType = "urn:ietf:params:oauth:grant-type:device_code"
 
 // PollToken polls the server at pollURL until an access token is granted or denied.
 //
-// Deprecated: use PollTokenWithOptions.
+// Deprecated: use Wait.
 func PollToken(c httpClient, pollURL string, clientID string, code *CodeResponse) (*api.AccessToken, error) {
-	return PollTokenWithOptions(c, pollURL, PollOptions{
+	return Wait(context.Background(), c, pollURL, WaitOptions{
 		ClientID:   clientID,
 		DeviceCode: code,
 	})
 }
 
-// PollOptions specifies parameters to poll the server with until authentication completes.
-type PollOptions struct {
+// WaitOptions specifies parameters to poll the server with until authentication completes.
+type WaitOptions struct {
 	// ClientID is the app client ID value.
 	ClientID string
 	// ClientSecret is the app client secret value. Optional: only pass if the server requires it.
@@ -122,30 +123,35 @@ type PollOptions struct {
 	// GrantType overrides the default value specified by OAuth 2.0 Device Code. Optional.
 	GrantType string
 
-	timeNow   func() time.Time
-	timeSleep func(time.Duration)
+	modifyDuration func(time.Duration) time.Duration
 }
 
-// PollTokenWithOptions polls the server at uri until authorization completes.
-func PollTokenWithOptions(c httpClient, uri string, opts PollOptions) (*api.AccessToken, error) {
-	timeNow := opts.timeNow
-	if timeNow == nil {
-		timeNow = time.Now
-	}
-	timeSleep := opts.timeSleep
-	if timeSleep == nil {
-		timeSleep = time.Sleep
-	}
-
+// Wait polls the server at uri until authorization completes.
+func Wait(ctx context.Context, c httpClient, uri string, opts WaitOptions) (*api.AccessToken, error) {
 	checkInterval := time.Duration(opts.DeviceCode.Interval) * time.Second
-	expiresAt := timeNow().Add(time.Duration(opts.DeviceCode.ExpiresIn) * time.Second)
+	if opts.modifyDuration != nil {
+		checkInterval = opts.modifyDuration(checkInterval)
+	}
+	expiresIn := time.Duration(opts.DeviceCode.ExpiresIn) * time.Second
+	if opts.modifyDuration != nil {
+		expiresIn = opts.modifyDuration(expiresIn)
+	}
+	tctx, cancel := context.WithTimeout(ctx, expiresIn)
+	defer cancel()
+
 	grantType := opts.GrantType
 	if opts.GrantType == "" {
 		grantType = defaultGrantType
 	}
 
 	for {
-		timeSleep(checkInterval)
+		intervalTimer := time.NewTimer(checkInterval)
+		select {
+		case <-tctx.Done():
+			intervalTimer.Stop()
+			return nil, tctx.Err()
+		case <-intervalTimer.C:
+		}
 
 		values := url.Values{
 			"client_id":   {opts.ClientID},
@@ -158,6 +164,7 @@ func PollTokenWithOptions(c httpClient, uri string, opts PollOptions) (*api.Acce
 			values.Add("client_secret", opts.ClientSecret)
 		}
 
+		// TODO: pass tctx down to the HTTP layer
 		resp, err := api.PostForm(c, uri, values)
 		if err != nil {
 			return nil, err
@@ -169,10 +176,6 @@ func PollTokenWithOptions(c httpClient, uri string, opts PollOptions) (*api.Acce
 			return token, nil
 		} else if !(errors.As(err, &apiError) && apiError.Code == "authorization_pending") {
 			return nil, err
-		}
-
-		if timeNow().After(expiresAt) {
-			return nil, ErrTimeout
 		}
 	}
 }
