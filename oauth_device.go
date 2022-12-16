@@ -58,7 +58,10 @@ func (oa *Flow) DeviceFlow() (*api.AccessToken, error) {
 		return nil, fmt.Errorf("error opening the web browser: %w", err)
 	}
 
-	return device.PollToken(httpClient, host.TokenURL, oa.ClientID, nil, code)
+	return device.PollTokenWithOptions(httpClient, host.TokenURL, device.PollOptions{
+		ClientID:   oa.ClientID,
+		DeviceCode: code,
+	})
 }
 
 func waitForEnter(r io.Reader) error {

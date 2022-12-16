@@ -51,9 +51,6 @@ type CodeResponse struct {
 	// The minimum number of seconds that must pass before you can make a new access token request to
 	// complete the device authorization.
 	Interval int
-
-	timeNow   func() time.Time
-	timeSleep func(time.Duration)
 }
 
 // RequestCode initiates the authorization flow by requesting a code from uri.
@@ -102,37 +99,66 @@ func RequestCode(c httpClient, uri string, clientID string, scopes []string) (*C
 	}, nil
 }
 
-const grantType = "urn:ietf:params:oauth:grant-type:device_code"
+const defaultGrantType = "urn:ietf:params:oauth:grant-type:device_code"
 
 // PollToken polls the server at pollURL until an access token is granted or denied.
-func PollToken(c httpClient, pollURL string, clientID string, clientSecret *string, code *CodeResponse) (*api.AccessToken, error) {
-	timeNow := code.timeNow
+//
+// Deprecated: use PollTokenWithOptions.
+func PollToken(c httpClient, pollURL string, clientID string, code *CodeResponse) (*api.AccessToken, error) {
+	return PollTokenWithOptions(c, pollURL, PollOptions{
+		ClientID:   clientID,
+		DeviceCode: code,
+	})
+}
+
+// PollOptions specifies parameters to poll the server with until authentication completes.
+type PollOptions struct {
+	// ClientID is the app client ID value.
+	ClientID string
+	// ClientSecret is the app client secret value. Optional: only pass if the server requires it.
+	ClientSecret string
+	// DeviceCode is the value obtained from RequestCode.
+	DeviceCode *CodeResponse
+	// GrantType overrides the default value specified by OAuth 2.0 Device Code. Optional.
+	GrantType string
+
+	timeNow   func() time.Time
+	timeSleep func(time.Duration)
+}
+
+// PollTokenWithOptions polls the server at uri until authorization completes.
+func PollTokenWithOptions(c httpClient, uri string, opts PollOptions) (*api.AccessToken, error) {
+	timeNow := opts.timeNow
 	if timeNow == nil {
 		timeNow = time.Now
 	}
-	timeSleep := code.timeSleep
+	timeSleep := opts.timeSleep
 	if timeSleep == nil {
 		timeSleep = time.Sleep
 	}
 
-	checkInterval := time.Duration(code.Interval) * time.Second
-	expiresAt := timeNow().Add(time.Duration(code.ExpiresIn) * time.Second)
+	checkInterval := time.Duration(opts.DeviceCode.Interval) * time.Second
+	expiresAt := timeNow().Add(time.Duration(opts.DeviceCode.ExpiresIn) * time.Second)
+	grantType := opts.GrantType
+	if opts.GrantType == "" {
+		grantType = defaultGrantType
+	}
 
 	for {
 		timeSleep(checkInterval)
 
 		values := url.Values{
-			"client_id":   {clientID},
-			"device_code": {code.DeviceCode},
+			"client_id":   {opts.ClientID},
+			"device_code": {opts.DeviceCode.DeviceCode},
 			"grant_type":  {grantType},
 		}
 
 		// Google's "OAuth 2.0 for TV and Limited-Input Device Applications" requires `client_secret`.
-		if clientSecret != nil {
-			values.Add("client_secret", *clientSecret)
+		if opts.ClientSecret != "" {
+			values.Add("client_secret", opts.ClientSecret)
 		}
 
-		resp, err := api.PostForm(c, pollURL, values)
+		resp, err := api.PostForm(c, uri, values)
 		if err != nil {
 			return nil, err
 		}

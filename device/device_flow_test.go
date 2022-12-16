@@ -249,10 +249,9 @@ func TestPollToken(t *testing.T) {
 	}
 
 	type args struct {
-		http     apiClient
-		url      string
-		clientID string
-		code     *CodeResponse
+		http apiClient
+		url  string
+		opts PollOptions
 	}
 	tests := []struct {
 		name    string
@@ -279,16 +278,18 @@ func TestPollToken(t *testing.T) {
 						},
 					},
 				},
-				url:      "https://github.com/oauth",
-				clientID: "CLIENT-ID",
-				code: &CodeResponse{
-					DeviceCode:      "DEVIC",
-					UserCode:        "123-abc",
-					VerificationURI: "http://verify.me",
-					ExpiresIn:       99,
-					Interval:        5,
-					timeSleep:       mockSleep,
-					timeNow:         clock("0", "5s", "10s"),
+				url: "https://github.com/oauth",
+				opts: PollOptions{
+					ClientID: "CLIENT-ID",
+					DeviceCode: &CodeResponse{
+						DeviceCode:      "DEVIC",
+						UserCode:        "123-abc",
+						VerificationURI: "http://verify.me",
+						ExpiresIn:       99,
+						Interval:        5,
+					},
+					timeSleep: mockSleep,
+					timeNow:   clock("0", "5s", "10s"),
 				},
 			},
 			want: &api.AccessToken{
@@ -315,6 +316,50 @@ func TestPollToken(t *testing.T) {
 			},
 		},
 		{
+			name: "with client secret and grant type",
+			args: args{
+				http: apiClient{
+					stubs: []apiStub{
+						{
+							body:        "access_token=123abc",
+							status:      200,
+							contentType: "application/x-www-form-urlencoded; charset=utf-8",
+						},
+					},
+				},
+				url: "https://github.com/oauth",
+				opts: PollOptions{
+					ClientID:     "CLIENT-ID",
+					ClientSecret: "SEKRIT",
+					GrantType:    "device_code",
+					DeviceCode: &CodeResponse{
+						DeviceCode:      "DEVIC",
+						UserCode:        "123-abc",
+						VerificationURI: "http://verify.me",
+						ExpiresIn:       99,
+						Interval:        5,
+					},
+					timeSleep: mockSleep,
+					timeNow:   clock("0", "5s", "10s"),
+				},
+			},
+			want: &api.AccessToken{
+				Token: "123abc",
+			},
+			slept: duration("5s"),
+			posts: []postArgs{
+				{
+					url: "https://github.com/oauth",
+					params: url.Values{
+						"client_id":     {"CLIENT-ID"},
+						"client_secret": {"SEKRIT"},
+						"device_code":   {"DEVIC"},
+						"grant_type":    {"device_code"},
+					},
+				},
+			},
+		},
+		{
 			name: "timed out",
 			args: args{
 				http: apiClient{
@@ -331,16 +376,18 @@ func TestPollToken(t *testing.T) {
 						},
 					},
 				},
-				url:      "https://github.com/oauth",
-				clientID: "CLIENT-ID",
-				code: &CodeResponse{
-					DeviceCode:      "DEVIC",
-					UserCode:        "123-abc",
-					VerificationURI: "http://verify.me",
-					ExpiresIn:       99,
-					Interval:        5,
-					timeSleep:       mockSleep,
-					timeNow:         clock("0", "5s", "15m"),
+				url: "https://github.com/oauth",
+				opts: PollOptions{
+					ClientID: "CLIENT-ID",
+					DeviceCode: &CodeResponse{
+						DeviceCode:      "DEVIC",
+						UserCode:        "123-abc",
+						VerificationURI: "http://verify.me",
+						ExpiresIn:       99,
+						Interval:        5,
+					},
+					timeSleep: mockSleep,
+					timeNow:   clock("0", "5s", "15m"),
 				},
 			},
 			wantErr: "authentication timed out",
@@ -376,16 +423,18 @@ func TestPollToken(t *testing.T) {
 						},
 					},
 				},
-				url:      "https://github.com/oauth",
-				clientID: "CLIENT-ID",
-				code: &CodeResponse{
-					DeviceCode:      "DEVIC",
-					UserCode:        "123-abc",
-					VerificationURI: "http://verify.me",
-					ExpiresIn:       99,
-					Interval:        5,
-					timeSleep:       mockSleep,
-					timeNow:         clock("0", "5s"),
+				url: "https://github.com/oauth",
+				opts: PollOptions{
+					ClientID: "CLIENT-ID",
+					DeviceCode: &CodeResponse{
+						DeviceCode:      "DEVIC",
+						UserCode:        "123-abc",
+						VerificationURI: "http://verify.me",
+						ExpiresIn:       99,
+						Interval:        5,
+					},
+					timeSleep: mockSleep,
+					timeNow:   clock("0", "5s"),
 				},
 			},
 			wantErr: "access_denied",
@@ -405,7 +454,7 @@ func TestPollToken(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			totalSlept = 0
-			got, err := PollToken(&tt.args.http, tt.args.url, tt.args.clientID, nil, tt.args.code)
+			got, err := PollTokenWithOptions(&tt.args.http, tt.args.url, tt.args.opts)
 			if (err != nil) != (tt.wantErr != "") {
 				t.Errorf("PollToken() error = %v, wantErr %v", err, tt.wantErr)
 				return
