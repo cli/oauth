@@ -1,16 +1,19 @@
-package oauth
+package oauth_test
 
 import (
 	"fmt"
 	"os"
+
+	"github.com/cli/oauth"
 )
 
-// Try initiating OAuth Device flow on the server and fall back to OAuth Web application flow if
-// Device flow seems unsupported. This approach isn't strictly needed for github.com, as its Device
-// flow support is globally available, but enables logging in to hosted GitHub instances as well.
-func Example() {
-	flow := &Flow{
-		Host:         GitHubHost("https://github.com"),
+// DetectFlow attempts to initiate OAuth Device flow with the server and falls back to OAuth Web
+// application flow if Device flow seems unsupported. This approach isn't strictly needed for
+// github.com, as its Device flow support is globally available, but it enables logging in to
+// self-hosted GitHub instances as well.
+func ExampleFlow_DetectFlow() {
+	flow := &oauth.Flow{
+		Host:         oauth.GitHubHost("https://github.com"),
 		ClientID:     os.Getenv("OAUTH_CLIENT_ID"),
 		ClientSecret: os.Getenv("OAUTH_CLIENT_SECRET"), // only applicable to web app flow
 		CallbackURI:  "http://127.0.0.1/callback",      // only applicable to web app flow
