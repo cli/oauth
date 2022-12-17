@@ -1,4 +1,4 @@
-package webapp
+package webapp_test
 
 import (
 	"context"
@@ -7,22 +7,23 @@ import (
 	"os"
 
 	"github.com/cli/browser"
+	"github.com/cli/oauth/webapp"
 )
 
-// This demonstrates how to perform OAuth App Authorization Flow for GitHub.com.
-// Ensure that the OAuth app on GitHub lists the callback URL: "http://127.0.0.1/callback"
-func Example() {
+// Initiate the OAuth App Authorization Flow for GitHub.com.
+func ExampleInitFlow() {
 	clientID := os.Getenv("OAUTH_CLIENT_ID")
 	clientSecret := os.Getenv("OAUTH_CLIENT_SECRET")
+	callbackURL := "http://127.0.0.1/callback"
 
-	flow, err := InitFlow()
+	flow, err := webapp.InitFlow()
 	if err != nil {
 		panic(err)
 	}
 
-	params := BrowserParams{
+	params := webapp.BrowserParams{
 		ClientID:    clientID,
-		RedirectURI: "http://127.0.0.1/callback",
+		RedirectURI: callbackURL,
 		Scopes:      []string{"repo", "read:org"},
 		AllowSignup: true,
 	}
@@ -43,7 +44,7 @@ func Example() {
 	}
 
 	httpClient := http.DefaultClient
-	accessToken, err := flow.Wait(context.TODO(), httpClient, "https://github.com/login/oauth/access_token", WaitOptions{
+	accessToken, err := flow.Wait(context.TODO(), httpClient, "https://github.com/login/oauth/access_token", webapp.WaitOptions{
 		ClientSecret: clientSecret,
 	})
 	if err != nil {
