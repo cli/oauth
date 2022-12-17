@@ -3,6 +3,7 @@ package device
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -231,8 +232,10 @@ func TestRequestCode(t *testing.T) {
 }
 
 func TestPollToken(t *testing.T) {
-	secondsToMs := func(d time.Duration) time.Duration {
-		return d / 1000
+	makeFakePoller := func(maxWaits int) pollerFactory {
+		return func(ctx context.Context, interval, expiresIn time.Duration) (context.Context, poller) {
+			return ctx, &fakePoller{maxWaits: maxWaits}
+		}
 	}
 
 	type args struct {
@@ -275,7 +278,7 @@ func TestPollToken(t *testing.T) {
 						ExpiresIn:       99,
 						Interval:        5,
 					},
-					modifyDuration: secondsToMs,
+					newPoller: makeFakePoller(2),
 				},
 			},
 			want: &api.AccessToken{
@@ -324,7 +327,7 @@ func TestPollToken(t *testing.T) {
 						ExpiresIn:       99,
 						Interval:        5,
 					},
-					modifyDuration: secondsToMs,
+					newPoller: makeFakePoller(1),
 				},
 			},
 			want: &api.AccessToken{
@@ -369,7 +372,7 @@ func TestPollToken(t *testing.T) {
 						ExpiresIn:       14,
 						Interval:        5,
 					},
-					modifyDuration: secondsToMs,
+					newPoller: makeFakePoller(2),
 				},
 			},
 			wantErr: "context deadline exceeded",
@@ -414,7 +417,7 @@ func TestPollToken(t *testing.T) {
 						ExpiresIn:       99,
 						Interval:        5,
 					},
-					modifyDuration: secondsToMs,
+					newPoller: makeFakePoller(1),
 				},
 			},
 			wantErr: "access_denied",
@@ -448,4 +451,20 @@ func TestPollToken(t *testing.T) {
 			}
 		})
 	}
+}
+
+type fakePoller struct {
+	maxWaits int
+	count    int
+}
+
+func (p *fakePoller) Wait() error {
+	if p.count == p.maxWaits {
+		return errors.New("context deadline exceeded")
+	}
+	p.count++
+	return nil
+}
+
+func (p *fakePoller) Cancel() {
 }

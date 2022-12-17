@@ -123,34 +123,27 @@ type WaitOptions struct {
 	// GrantType overrides the default value specified by OAuth 2.0 Device Code. Optional.
 	GrantType string
 
-	modifyDuration func(time.Duration) time.Duration
+	newPoller pollerFactory
 }
 
 // Wait polls the server at uri until authorization completes.
 func Wait(ctx context.Context, c httpClient, uri string, opts WaitOptions) (*api.AccessToken, error) {
 	checkInterval := time.Duration(opts.DeviceCode.Interval) * time.Second
-	if opts.modifyDuration != nil {
-		checkInterval = opts.modifyDuration(checkInterval)
-	}
 	expiresIn := time.Duration(opts.DeviceCode.ExpiresIn) * time.Second
-	if opts.modifyDuration != nil {
-		expiresIn = opts.modifyDuration(expiresIn)
-	}
-	tctx, cancel := context.WithTimeout(ctx, expiresIn)
-	defer cancel()
-
 	grantType := opts.GrantType
 	if opts.GrantType == "" {
 		grantType = defaultGrantType
 	}
 
+	makePoller := opts.newPoller
+	if makePoller == nil {
+		makePoller = newPoller
+	}
+	_, poll := makePoller(ctx, checkInterval, expiresIn)
+
 	for {
-		intervalTimer := time.NewTimer(checkInterval)
-		select {
-		case <-tctx.Done():
-			intervalTimer.Stop()
-			return nil, tctx.Err()
-		case <-intervalTimer.C:
+		if err := poll.Wait(); err != nil {
+			return nil, err
 		}
 
 		values := url.Values{
