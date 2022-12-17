@@ -2,6 +2,7 @@ package webapp
 
 import (
 	"bytes"
+	"context"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -132,7 +133,7 @@ func TestFlow_AccessToken(t *testing.T) {
 		}
 	}()
 
-	token, err := flow.AccessToken(client, "https://github.com/access_token", "OAUTH-SEKRIT")
+	token, err := flow.Wait(context.Background(), client, "https://github.com/access_token", WaitOptions{ClientSecret: "OAUTH-SEKRIT"})
 	if err != nil {
 		t.Fatalf("AccessToken() error: %v", err)
 	}

@@ -2,6 +2,7 @@ package oauth
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -58,7 +59,7 @@ func (oa *Flow) DeviceFlow() (*api.AccessToken, error) {
 		return nil, fmt.Errorf("error opening the web browser: %w", err)
 	}
 
-	return device.PollTokenWithOptions(httpClient, host.TokenURL, device.PollOptions{
+	return device.Wait(context.TODO(), httpClient, host.TokenURL, device.WaitOptions{
 		ClientID:   oa.ClientID,
 		DeviceCode: code,
 	})

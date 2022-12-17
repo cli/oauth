@@ -1,6 +1,7 @@
 package webapp
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -42,7 +43,9 @@ func Example() {
 	}
 
 	httpClient := http.DefaultClient
-	accessToken, err := flow.AccessToken(httpClient, "https://github.com/login/oauth/access_token", clientSecret)
+	accessToken, err := flow.Wait(context.TODO(), httpClient, "https://github.com/login/oauth/access_token", WaitOptions{
+		ClientSecret: clientSecret,
+	})
 	if err != nil {
 		panic(err)
 	}

@@ -1,6 +1,7 @@
 package oauth
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -52,5 +53,7 @@ func (oa *Flow) WebAppFlow() (*api.AccessToken, error) {
 		httpClient = http.DefaultClient
 	}
 
-	return flow.AccessToken(httpClient, host.TokenURL, oa.ClientSecret)
+	return flow.Wait(context.TODO(), httpClient, host.TokenURL, webapp.WaitOptions{
+		ClientSecret: oa.ClientSecret,
+	})
 }

@@ -1,6 +1,7 @@
 package webapp
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -46,8 +47,13 @@ func (s *localServer) Serve() error {
 	return http.Serve(s.listener, s)
 }
 
-func (s *localServer) WaitForCode() (CodeResponse, error) {
-	return <-s.resultChan, nil
+func (s *localServer) WaitForCode(ctx context.Context) (CodeResponse, error) {
+	select {
+	case <-ctx.Done():
+		return CodeResponse{}, ctx.Err()
+	case code := <-s.resultChan:
+		return code, nil
+	}
 }
 
 // ServeHTTP implements http.Handler.

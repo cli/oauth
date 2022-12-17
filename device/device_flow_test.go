@@ -2,6 +2,8 @@ package device
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -230,28 +232,16 @@ func TestRequestCode(t *testing.T) {
 }
 
 func TestPollToken(t *testing.T) {
-	var totalSlept time.Duration
-	mockSleep := func(d time.Duration) {
-		totalSlept += d
-	}
-	duration := func(d string) time.Duration {
-		res, _ := time.ParseDuration(d)
-		return res
-	}
-	clock := func(durations ...string) func() time.Time {
-		count := 0
-		now := time.Now()
-		return func() time.Time {
-			t := now.Add(duration(durations[count]))
-			count++
-			return t
+	makeFakePoller := func(maxWaits int) pollerFactory {
+		return func(ctx context.Context, interval, expiresIn time.Duration) (context.Context, poller) {
+			return ctx, &fakePoller{maxWaits: maxWaits}
 		}
 	}
 
 	type args struct {
 		http apiClient
 		url  string
-		opts PollOptions
+		opts WaitOptions
 	}
 	tests := []struct {
 		name    string
@@ -279,7 +269,7 @@ func TestPollToken(t *testing.T) {
 					},
 				},
 				url: "https://github.com/oauth",
-				opts: PollOptions{
+				opts: WaitOptions{
 					ClientID: "CLIENT-ID",
 					DeviceCode: &CodeResponse{
 						DeviceCode:      "DEVIC",
@@ -288,14 +278,12 @@ func TestPollToken(t *testing.T) {
 						ExpiresIn:       99,
 						Interval:        5,
 					},
-					timeSleep: mockSleep,
-					timeNow:   clock("0", "5s", "10s"),
+					newPoller: makeFakePoller(2),
 				},
 			},
 			want: &api.AccessToken{
 				Token: "123abc",
 			},
-			slept: duration("10s"),
 			posts: []postArgs{
 				{
 					url: "https://github.com/oauth",
@@ -328,7 +316,7 @@ func TestPollToken(t *testing.T) {
 					},
 				},
 				url: "https://github.com/oauth",
-				opts: PollOptions{
+				opts: WaitOptions{
 					ClientID:     "CLIENT-ID",
 					ClientSecret: "SEKRIT",
 					GrantType:    "device_code",
@@ -339,14 +327,12 @@ func TestPollToken(t *testing.T) {
 						ExpiresIn:       99,
 						Interval:        5,
 					},
-					timeSleep: mockSleep,
-					timeNow:   clock("0", "5s", "10s"),
+					newPoller: makeFakePoller(1),
 				},
 			},
 			want: &api.AccessToken{
 				Token: "123abc",
 			},
-			slept: duration("5s"),
 			posts: []postArgs{
 				{
 					url: "https://github.com/oauth",
@@ -377,21 +363,19 @@ func TestPollToken(t *testing.T) {
 					},
 				},
 				url: "https://github.com/oauth",
-				opts: PollOptions{
+				opts: WaitOptions{
 					ClientID: "CLIENT-ID",
 					DeviceCode: &CodeResponse{
 						DeviceCode:      "DEVIC",
 						UserCode:        "123-abc",
 						VerificationURI: "http://verify.me",
-						ExpiresIn:       99,
+						ExpiresIn:       14,
 						Interval:        5,
 					},
-					timeSleep: mockSleep,
-					timeNow:   clock("0", "5s", "15m"),
+					newPoller: makeFakePoller(2),
 				},
 			},
-			wantErr: "authentication timed out",
-			slept:   duration("10s"),
+			wantErr: "context deadline exceeded",
 			posts: []postArgs{
 				{
 					url: "https://github.com/oauth",
@@ -424,7 +408,7 @@ func TestPollToken(t *testing.T) {
 					},
 				},
 				url: "https://github.com/oauth",
-				opts: PollOptions{
+				opts: WaitOptions{
 					ClientID: "CLIENT-ID",
 					DeviceCode: &CodeResponse{
 						DeviceCode:      "DEVIC",
@@ -433,12 +417,10 @@ func TestPollToken(t *testing.T) {
 						ExpiresIn:       99,
 						Interval:        5,
 					},
-					timeSleep: mockSleep,
-					timeNow:   clock("0", "5s"),
+					newPoller: makeFakePoller(1),
 				},
 			},
 			wantErr: "access_denied",
-			slept:   duration("5s"),
 			posts: []postArgs{
 				{
 					url: "https://github.com/oauth",
@@ -453,8 +435,7 @@ func TestPollToken(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			totalSlept = 0
-			got, err := PollTokenWithOptions(&tt.args.http, tt.args.url, tt.args.opts)
+			got, err := Wait(context.Background(), &tt.args.http, tt.args.url, tt.args.opts)
 			if (err != nil) != (tt.wantErr != "") {
 				t.Errorf("PollToken() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -468,9 +449,22 @@ func TestPollToken(t *testing.T) {
 			if !reflect.DeepEqual(tt.args.http.calls, tt.posts) {
 				t.Errorf("PostForm() = %v, want %v", tt.args.http.calls, tt.posts)
 			}
-			if totalSlept != tt.slept {
-				t.Errorf("slept %v, wanted %v", totalSlept, tt.slept)
-			}
 		})
 	}
+}
+
+type fakePoller struct {
+	maxWaits int
+	count    int
+}
+
+func (p *fakePoller) Wait() error {
+	if p.count == p.maxWaits {
+		return errors.New("context deadline exceeded")
+	}
+	p.count++
+	return nil
+}
+
+func (p *fakePoller) Cancel() {
 }
