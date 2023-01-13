@@ -5,6 +5,18 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "[concat('automationAccount1', '/automationVariable1')]",
+            "type": "Microsoft.Automation/automationAccounts/modules",
+            "apiVersion": "2015-10-31",
+            "dependsOn": [
+                "[resourceId('Microsoft.Automation/automationAccounts', 'automationAccount1')]"
+            ],
+            "properties": {
+                "contentLink": "{}"
+            }
+        }
+
+        {
             "name": "Embedded Flash",
             "type": "embedded-flash",
             "request": "launch",
