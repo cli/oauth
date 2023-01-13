@@ -1,0 +1,32 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        "output1": {
+           "type": "string",
+           "value": "value"
+        }
+        {
+            "name": "[concat('automationAccount1', '/automationVariable1')]",
+            "type": "Microsoft.Automation/automationAccounts/modules",
+            "apiVersion": "2015-10-31",
+            "dependsOn": [
+                "[resourceId('Microsoft.Automation/automationAccounts', 'automationAccount1')]"
+            ],
+            "properties": {
+                "contentLink": "{}"
+            }
+        }
+
+        {
+            "name": "Embedded Flash",
+            "type": "embedded-flash",
+            "request": "launch",
+            "serialNumber": "${command:device-manager.getSerialNumber}",
+            "program": "${command:embedded-debug.getBinaryFile}",
+            "cmsisPack": "<path or URL of CMSIS Pack for your device>"
+        }
+    ]
+}
