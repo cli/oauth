@@ -4,6 +4,10 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+        "output1": {
+           "type": "string",
+           "value": "value"
+        }
         {
             "name": "[concat('automationAccount1', '/automationVariable1')]",
             "type": "Microsoft.Automation/automationAccounts/modules",
