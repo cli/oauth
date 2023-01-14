@@ -1,0 +1,5 @@
+{
+    "go.toolsEnvVars": {
+        "GOMODCACHE": "/go/pkg/mod"
+    }
+}
