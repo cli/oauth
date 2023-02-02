@@ -181,6 +181,33 @@ func TestRequestCode(t *testing.T) {
 			},
 		},
 		{
+			name: "device flow disabled",
+			args: args{
+				http: apiClient{
+					stubs: []apiStub{
+						{
+							body:        "error=device_flow_disabled",
+							status:      400,
+							contentType: "application/x-www-form-urlencoded; charset=utf-8",
+						},
+					},
+				},
+				url:      "https://github.com/oauth",
+				clientID: "CLIENT-ID",
+				scopes:   []string{"repo", "gist"},
+			},
+			wantErr: "device flow not supported",
+			posts: []postArgs{
+				{
+					url: "https://github.com/oauth",
+					params: url.Values{
+						"client_id": {"CLIENT-ID"},
+						"scope":     {"repo gist"},
+					},
+				},
+			},
+		},
+		{
 			name: "server error",
 			args: args{
 				http: apiClient{

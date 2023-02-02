@@ -72,6 +72,7 @@ func RequestCode(c httpClient, uri string, clientID string, scopes []string) (*C
 
 	if resp.StatusCode == 401 || resp.StatusCode == 403 || resp.StatusCode == 404 || resp.StatusCode == 422 ||
 		(resp.StatusCode == 200 && verificationURI == "") ||
+		(resp.StatusCode == 400 && resp.Get("error") == "device_flow_disabled") ||
 		(resp.StatusCode == 400 && resp.Get("error") == "unauthorized_client") {
 		return nil, ErrUnsupported
 	}
