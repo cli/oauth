@@ -14,8 +14,13 @@ import (
 // flow, blocks until the user completes authorization and is redirected back, and returns the access token.
 func (oa *Flow) WebAppFlow() (*api.AccessToken, error) {
 	host := oa.Host
+
 	if host == nil {
-		host = GitHubHost("https://" + oa.Hostname)
+		_, err := NewGitHubHost("https://" + oa.Hostname)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing the hostname %w", err)
+		}
+		//host = GitHubHost("https://" + oa.Hostname)
 	}
 
 	flow, err := webapp.InitFlow()
