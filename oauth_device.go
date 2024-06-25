@@ -32,12 +32,11 @@ func (oa *Flow) DeviceFlow() (*api.AccessToken, error) {
 
 	host := oa.Host
 	if host == nil {
-		_, err := NewGitHubHost("https://" + oa.Hostname)
+		host, err := NewGitHubHost("https://" + oa.Hostname)
 		if err != nil {
-			return nil, fmt.Errorf("error parsing the hostname %w", err)
+			return nil, fmt.Errorf("error parsing the hostname '%s': %w", host, err)
 		}
-
-		//host = GitHubHost("https://" + oa.Hostname)
+		oa.Host = host
 	}
 
 	code, err := device.RequestCode(httpClient, host.DeviceCodeURL, oa.ClientID, oa.Scopes)
