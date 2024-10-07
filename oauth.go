@@ -25,6 +25,7 @@ type Host struct {
 	TokenURL      string
 }
 
+// NewGitHubHost constructs a Host from the given URL to a GitHub instance.
 func NewGitHubHost(hostURL string) (*Host, error) {
 	base, err := url.Parse(strings.TrimSpace(hostURL))
 	if err != nil {
