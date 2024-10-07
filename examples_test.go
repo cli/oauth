@@ -13,6 +13,9 @@ import (
 // self-hosted GitHub instances as well.
 func ExampleFlow_DetectFlow() {
   host, err := oauth.NewGitHubHost("https://github.com")
+  if err != nil {
+    panic(err)
+  }
   flow := &oauth.Flow{
     Host:         host,
     ClientID:     os.Getenv("OAUTH_CLIENT_ID"),
