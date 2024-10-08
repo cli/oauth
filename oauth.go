@@ -46,7 +46,7 @@ func NewGitHubHost(hostURL string) (*Host, error) {
 }
 
 // GitHubHost constructs a Host from the given URL to a GitHub instance.
-// 
+//
 // Deprecated: `GitHubHost` can panic with a malformed `hostURL`. Use `NewGitHubHost` instead for graceful error handling.
 func GitHubHost(hostURL string) *Host {
 	u, _ := url.Parse(hostURL)
