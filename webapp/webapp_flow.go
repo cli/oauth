@@ -47,6 +47,7 @@ type BrowserParams struct {
 	ClientID    string
 	RedirectURI string
 	Scopes      []string
+	Audience    string
 	LoginHandle string
 	AllowSignup bool
 }
@@ -68,6 +69,10 @@ func (flow *Flow) BrowserURL(baseURL string, params BrowserParams) (string, erro
 	q.Set("redirect_uri", ru.String())
 	q.Set("scope", strings.Join(params.Scopes, " "))
 	q.Set("state", flow.state)
+
+	if params.Audience != "" {
+		q.Set("audience", params.Audience)
+	}
 	if params.LoginHandle != "" {
 		q.Set("login", params.LoginHandle)
 	}

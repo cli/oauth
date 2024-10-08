@@ -27,6 +27,7 @@ func (oa *Flow) WebAppFlow() (*api.AccessToken, error) {
 		ClientID:    oa.ClientID,
 		RedirectURI: oa.CallbackURI,
 		Scopes:      oa.Scopes,
+		Audience:    oa.Audience,
 		AllowSignup: true,
 	}
 	browserURL, err := flow.BrowserURL(host.AuthorizeURL, params)
