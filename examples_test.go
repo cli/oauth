@@ -12,8 +12,12 @@ import (
 // github.com, as its Device flow support is globally available, but it enables logging in to
 // self-hosted GitHub instances as well.
 func ExampleFlow_DetectFlow() {
+	host, err := oauth.NewGitHubHost("https://github.com")
+	if err != nil {
+		panic(err)
+	}
 	flow := &oauth.Flow{
-		Host:         oauth.GitHubHost("https://github.com"),
+		Host:         host,
 		ClientID:     os.Getenv("OAUTH_CLIENT_ID"),
 		ClientSecret: os.Getenv("OAUTH_CLIENT_SECRET"), // only applicable to web app flow
 		CallbackURI:  "http://127.0.0.1/callback",      // only applicable to web app flow
