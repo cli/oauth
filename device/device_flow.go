@@ -54,12 +54,29 @@ type CodeResponse struct {
 	Interval int
 }
 
+// Function signature for setting additional form values.
+type AuthRequestFn func(*url.Values)
+
+func WithAudience(audience string) AuthRequestFn {
+	return func(values *url.Values) {
+		if audience != "" {
+			values.Add("audience", audience)
+		}
+	}
+}
+
 // RequestCode initiates the authorization flow by requesting a code from uri.
-func RequestCode(c httpClient, uri string, clientID string, scopes []string) (*CodeResponse, error) {
-	resp, err := api.PostForm(c, uri, url.Values{
+func RequestCode(c httpClient, uri string, clientID string, scopes []string, extra ...AuthRequestFn) (*CodeResponse, error) {
+	values := url.Values{
 		"client_id": {clientID},
 		"scope":     {strings.Join(scopes, " ")},
-	})
+	}
+
+	for _, fn := range extra {
+		fn(&values)
+	}
+
+	resp, err := api.PostForm(c, uri, values)
 	if err != nil {
 		return nil, err
 	}

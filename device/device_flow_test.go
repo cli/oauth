@@ -51,6 +51,7 @@ func TestRequestCode(t *testing.T) {
 		url      string
 		clientID string
 		scopes   []string
+		audience string
 	}
 	tests := []struct {
 		name    string
@@ -122,6 +123,42 @@ func TestRequestCode(t *testing.T) {
 					params: url.Values{
 						"client_id": {"CLIENT-ID"},
 						"scope":     {"repo gist"},
+					},
+				},
+			},
+		},
+		{
+			name: "with audience",
+			args: args{
+				http: apiClient{
+					stubs: []apiStub{
+						{
+							body:        "verification_uri=http://verify.me&interval=5&expires_in=99&device_code=DEVIC&user_code=123-abc&verification_uri_complete=http://verify.me/?code=123-abc",
+							status:      200,
+							contentType: "application/x-www-form-urlencoded; charset=utf-8",
+						},
+					},
+				},
+				url:      "https://github.com/oauth",
+				clientID: "CLIENT-ID",
+				scopes:   []string{"repo", "gist"},
+				audience: "https://api.github.com",
+			},
+			want: &CodeResponse{
+				DeviceCode:              "DEVIC",
+				UserCode:                "123-abc",
+				VerificationURI:         "http://verify.me",
+				VerificationURIComplete: "http://verify.me/?code=123-abc",
+				ExpiresIn:               99,
+				Interval:                5,
+			},
+			posts: []postArgs{
+				{
+					url: "https://github.com/oauth",
+					params: url.Values{
+						"client_id": {"CLIENT-ID"},
+						"scope":     {"repo gist"},
+						"audience":  {"https://api.github.com"},
 					},
 				},
 			},
@@ -237,7 +274,8 @@ func TestRequestCode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := RequestCode(&tt.args.http, tt.args.url, tt.args.clientID, tt.args.scopes)
+			got, err := RequestCode(&tt.args.http, tt.args.url,
+				tt.args.clientID, tt.args.scopes, WithAudience(tt.args.audience))
 			if (err != nil) != (tt.wantErr != "") {
 				t.Errorf("RequestCode() error = %v, wantErr %v", err, tt.wantErr)
 				return

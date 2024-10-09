@@ -51,6 +51,24 @@ func TestFlow_BrowserURL(t *testing.T) {
 			want:    "https://github.com/authorize?client_id=CLIENT-ID&redirect_uri=http%3A%2F%2F127.0.0.1%3A12345%2Fhello&scope=repo+read%3Aorg&state=xy%2Fz",
 			wantErr: false,
 		},
+		{
+			name: "happy path with audience",
+			fields: fields{
+				server: server,
+				state:  "xy/z",
+			},
+			args: args{
+				baseURL: "https://github.com/authorize",
+				params: BrowserParams{
+					ClientID:    "CLIENT-ID",
+					RedirectURI: "http://127.0.0.1/hello",
+					Scopes:      []string{"repo", "read:org"},
+					AllowSignup: true,
+					Audience:    "https://api.github.com",
+				},
+			},
+			want: "https://github.com/authorize?audience=https%3A%2F%2Fapi.github.com&client_id=CLIENT-ID&redirect_uri=http%3A%2F%2F127.0.0.1%3A12345%2Fhello&scope=repo+read%3Aorg&state=xy%2Fz",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
