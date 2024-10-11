@@ -55,9 +55,9 @@ type CodeResponse struct {
 }
 
 // Function signature for setting additional form values.
-type AuthRequestFn func(*url.Values)
+type AuthRequestEditorFn func(*url.Values)
 
-func WithAudience(audience string) AuthRequestFn {
+func WithAudience(audience string) AuthRequestEditorFn {
 	return func(values *url.Values) {
 		if audience != "" {
 			values.Add("audience", audience)
@@ -66,13 +66,14 @@ func WithAudience(audience string) AuthRequestFn {
 }
 
 // RequestCode initiates the authorization flow by requesting a code from uri.
-func RequestCode(c httpClient, uri string, clientID string, scopes []string, extra ...AuthRequestFn) (*CodeResponse, error) {
+func RequestCode(c httpClient, uri string, clientID string, scopes []string,
+	optionalRequestParams ...AuthRequestEditorFn) (*CodeResponse, error) {
 	values := url.Values{
 		"client_id": {clientID},
 		"scope":     {strings.Join(scopes, " ")},
 	}
 
-	for _, fn := range extra {
+	for _, fn := range optionalRequestParams {
 		fn(&values)
 	}
 
