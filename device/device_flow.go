@@ -54,9 +54,10 @@ type CodeResponse struct {
 	Interval int
 }
 
-// Function signature for setting additional form values.
+// AuthRequestEditorFn defines the function signature for setting additional form values.
 type AuthRequestEditorFn func(*url.Values)
 
+// WithAudience sets the audience parameter in the request.
 func WithAudience(audience string) AuthRequestEditorFn {
 	return func(values *url.Values) {
 		if audience != "" {
