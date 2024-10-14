@@ -68,6 +68,8 @@ type Flow struct {
 	Host *Host
 	// OAuth scopes to request from the user.
 	Scopes []string
+	// OAuth audience to request from the user.
+	Audience string
 	// OAuth application ID.
 	ClientID string
 	// OAuth application secret. Only applicable in web application flow.
