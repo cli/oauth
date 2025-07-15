@@ -26,3 +26,13 @@ In theory, these packages would enable authorization on any OAuth-enabled host. 
 
 [oauth-device]: https://oauth.net/2/device-flow/
 [gh-device]: https://docs.github.com/en/free-pro-team@latest/developers/apps/authorizing-oauth-apps#device-flow
+
+## OAuth Guidance for CLI and Headless Apps
+
+When building CLI or headless applications, it's acceptable to embed your OAuth **Client ID** and even the **Client Secret**, if needed. These values are easily extractable from compiled binaries, and thus can't be treated as secure. This is expected in public client scenarios - GitHub CLI does the same.
+
+OAuth secrets were originally designed for secure server-side applications. In contrast, client-side apps cannot protect secrets and should instead rely on trusted authorization flows like the **Device Authorization Flow**, which avoids requiring a secret entirely.
+
+While the Client ID could be reused by others, this poses minimal risk in practice. To reduce potential misuse, services can apply rate limiting, restrict scopes, and monitor usage tied to the client.
+
+🔗 [GitHub OAuth Device Flow Documentation](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps#device-flow)
