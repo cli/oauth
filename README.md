@@ -23,16 +23,22 @@ Applications that need more control over the user experience around authenticati
 
 In theory, these packages would enable authorization on any OAuth-enabled host. In practice, however, this was only tested for authorizing with GitHub.
 
+## Managing OAuth Client Identifier
+
+CLIs or headless applications using [device flow][gh-device] are considered [public clients][rfc-client-types]:
+
+> _Clients incapable of maintaining the confidentiality of their credentials (e.g., clients executing on the device used by the resource owner, such as an installed native application or a web browser-based application), and incapable of secure client authentication via any other means._
+
+For this reason, the GitHub CLI has its OAuth client information committed to `cli/cli` source code as:
+
+1. `gh` releases are publicly distributed and can be decompiled to retrieve this information
+2. `gh` has semi-officially supported `go install` installation as described in [cli/cli#9912](https://github.com/cli/cli/issues/9912)
+
+Applications using [web application flow][gh-web] must keep the OAuth client secret confidential.
+
+For more information, see [cli/oauth#1](https://github.com/cli/oauth/issues/1)
 
 [oauth-device]: https://oauth.net/2/device-flow/
 [gh-device]: https://docs.github.com/en/free-pro-team@latest/developers/apps/authorizing-oauth-apps#device-flow
-
-## OAuth Guidance for CLI and Headless Apps
-
-When building CLI or headless applications, it's acceptable to embed your OAuth **Client ID** and even the **Client Secret**, if needed. These values are easily extractable from compiled binaries, and thus can't be treated as secure. This is expected in public client scenarios - GitHub CLI does the same.
-
-OAuth secrets were originally designed for secure server-side applications. In contrast, client-side apps cannot protect secrets and should instead rely on trusted authorization flows like the **Device Authorization Flow**, which avoids requiring a secret entirely.
-
-While the Client ID could be reused by others, this poses minimal risk in practice. To reduce potential misuse, services can apply rate limiting, restrict scopes, and monitor usage tied to the client.
-
-🔗 [GitHub OAuth Device Flow Documentation](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps#device-flow)
+[gh-web]: https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps#web-application-flow
+[rfc-client-types]: https://datatracker.ietf.org/doc/html/rfc6749#section-2.1
