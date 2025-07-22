@@ -31,7 +31,7 @@ CLIs or headless applications using [device flow][gh-device] are considered [pub
 
 For this reason, the GitHub CLI has its OAuth client information committed to `cli/cli` source code as:
 
-1. `gh` releases are publicly distributed and can be decompiled to retrieve this information
+1. `gh` releases are publicly distributed and can be decompiled to retrieve this information as described in [cli/cli#492](https://github.com/cli/cli/pull/492)
 2. `gh` has semi-officially supported `go install` installation as described in [cli/cli#9912](https://github.com/cli/cli/issues/9912)
 
 Applications using [web application flow][gh-web] must keep the OAuth client secret confidential.
