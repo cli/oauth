@@ -297,9 +297,18 @@ func TestRequestCode(t *testing.T) {
 }
 
 func TestPollToken(t *testing.T) {
-	makeFakePoller := func(maxWaits int) pollerFactory {
+	singletonFakePoller := func(maxWaits int) pollerFactory {
+		var instance *fakePoller
 		return func(ctx context.Context, interval, expiresIn time.Duration) (context.Context, poller) {
-			return ctx, &fakePoller{maxWaits: maxWaits}
+			if instance != nil {
+				// This is to make the factory return the same instance in tests.
+				return ctx, instance
+			}
+			instance = &fakePoller{
+				maxWaits: maxWaits,
+				interval: interval,
+			}
+			return ctx, instance
 		}
 	}
 
@@ -309,12 +318,13 @@ func TestPollToken(t *testing.T) {
 		opts WaitOptions
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    *api.AccessToken
-		wantErr string
-		posts   []postArgs
-		slept   time.Duration
+		name       string
+		args       args
+		want       *api.AccessToken
+		wantErr    string
+		assertFunc func(*testing.T, args)
+		posts      []postArgs
+		slept      time.Duration
 	}{
 		{
 			name: "success",
@@ -343,7 +353,7 @@ func TestPollToken(t *testing.T) {
 						ExpiresIn:       99,
 						Interval:        5,
 					},
-					newPoller: makeFakePoller(2),
+					newPoller: singletonFakePoller(2),
 				},
 			},
 			want: &api.AccessToken{
@@ -366,6 +376,335 @@ func TestPollToken(t *testing.T) {
 						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
 					},
 				},
+			},
+			assertFunc: func(t *testing.T, a args) {
+				// Get the created poller
+				_, poller := a.opts.newPoller(context.Background(), 0, 0)
+				if poller.(*fakePoller).updatedIntervals != nil {
+					t.Errorf("no interval change expected = %v", poller.(*fakePoller).updatedIntervals)
+				}
+			},
+		},
+		{
+			name: "success with slow down, new interval in returned response",
+			args: args{
+				http: apiClient{
+					stubs: []apiStub{
+						{
+							body:        "error=authorization_pending",
+							status:      200,
+							contentType: "application/x-www-form-urlencoded; charset=utf-8",
+						},
+						{
+							body:        "error=slow_down&error_description=Too+many+requests+have+been+made+in+the+same+timeframe.&error_uri=https%3A%2F%2Fdocs.github.com&interval=22",
+							status:      200,
+							contentType: "application/x-www-form-urlencoded; charset=utf-8",
+						},
+						{
+							body:        "access_token=123abc",
+							status:      200,
+							contentType: "application/x-www-form-urlencoded; charset=utf-8",
+						},
+					},
+				},
+				url: "https://github.com/oauth",
+				opts: WaitOptions{
+					ClientID: "CLIENT-ID",
+					DeviceCode: &CodeResponse{
+						DeviceCode:      "DEVIC",
+						UserCode:        "123-abc",
+						VerificationURI: "http://verify.me",
+						ExpiresIn:       99,
+						Interval:        5,
+					},
+					newPoller: singletonFakePoller(3),
+				},
+			},
+			want: &api.AccessToken{
+				Token: "123abc",
+			},
+			posts: []postArgs{
+				{
+					url: "https://github.com/oauth",
+					params: url.Values{
+						"client_id":   {"CLIENT-ID"},
+						"device_code": {"DEVIC"},
+						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
+					},
+				},
+				{
+					url: "https://github.com/oauth",
+					params: url.Values{
+						"client_id":   {"CLIENT-ID"},
+						"device_code": {"DEVIC"},
+						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
+					},
+				},
+				{
+					url: "https://github.com/oauth",
+					params: url.Values{
+						"client_id":   {"CLIENT-ID"},
+						"device_code": {"DEVIC"},
+						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
+					},
+				},
+			},
+			assertFunc: func(t *testing.T, a args) {
+				// Get the created poller
+				_, poller := a.opts.newPoller(context.Background(), 0, 0)
+				got := poller.(*fakePoller).updatedIntervals
+				want := []time.Duration{22 * time.Second}
+				if !reflect.DeepEqual(got, want) {
+					t.Errorf("unexpected updated intervals = %v, want %v", got, want)
+				}
+			},
+		},
+		{
+			name: "success with multiple slow down, new interval in returned response",
+			args: args{
+				http: apiClient{
+					stubs: []apiStub{
+						{
+							body:        "error=authorization_pending",
+							status:      200,
+							contentType: "application/x-www-form-urlencoded; charset=utf-8",
+						},
+						{
+							body:        "error=slow_down&error_description=Too+many+requests+have+been+made+in+the+same+timeframe.&error_uri=https%3A%2F%2Fdocs.github.com&interval=22",
+							status:      200,
+							contentType: "application/x-www-form-urlencoded; charset=utf-8",
+						},
+						{
+							body:        "error=slow_down&error_description=Too+many+requests+have+been+made+in+the+same+timeframe.&error_uri=https%3A%2F%2Fdocs.github.com&interval=33",
+							status:      200,
+							contentType: "application/x-www-form-urlencoded; charset=utf-8",
+						},
+						{
+							body:        "access_token=123abc",
+							status:      200,
+							contentType: "application/x-www-form-urlencoded; charset=utf-8",
+						},
+					},
+				},
+				url: "https://github.com/oauth",
+				opts: WaitOptions{
+					ClientID: "CLIENT-ID",
+					DeviceCode: &CodeResponse{
+						DeviceCode:      "DEVIC",
+						UserCode:        "123-abc",
+						VerificationURI: "http://verify.me",
+						ExpiresIn:       99,
+						Interval:        5,
+					},
+					newPoller: singletonFakePoller(4),
+				},
+			},
+			want: &api.AccessToken{
+				Token: "123abc",
+			},
+			posts: []postArgs{
+				{
+					url: "https://github.com/oauth",
+					params: url.Values{
+						"client_id":   {"CLIENT-ID"},
+						"device_code": {"DEVIC"},
+						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
+					},
+				},
+				{
+					url: "https://github.com/oauth",
+					params: url.Values{
+						"client_id":   {"CLIENT-ID"},
+						"device_code": {"DEVIC"},
+						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
+					},
+				},
+				{
+					url: "https://github.com/oauth",
+					params: url.Values{
+						"client_id":   {"CLIENT-ID"},
+						"device_code": {"DEVIC"},
+						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
+					},
+				},
+				{
+					url: "https://github.com/oauth",
+					params: url.Values{
+						"client_id":   {"CLIENT-ID"},
+						"device_code": {"DEVIC"},
+						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
+					},
+				},
+			},
+			assertFunc: func(t *testing.T, a args) {
+				// Get the created poller
+				_, poller := a.opts.newPoller(context.Background(), 0, 0)
+				got := poller.(*fakePoller).updatedIntervals
+				want := []time.Duration{22 * time.Second, 33 * time.Second}
+				if !reflect.DeepEqual(got, want) {
+					t.Errorf("unexpected updated intervals = %v, want %v", got, want)
+				}
+			},
+		},
+		{
+			name: "success with slow down, no interval in returned response",
+			args: args{
+				http: apiClient{
+					stubs: []apiStub{
+						{
+							body:        "error=authorization_pending",
+							status:      200,
+							contentType: "application/x-www-form-urlencoded; charset=utf-8",
+						},
+						{
+							body:        "error=slow_down",
+							status:      200,
+							contentType: "application/x-www-form-urlencoded; charset=utf-8",
+						},
+						{
+							body:        "access_token=123abc",
+							status:      200,
+							contentType: "application/x-www-form-urlencoded; charset=utf-8",
+						},
+					},
+				},
+				url: "https://github.com/oauth",
+				opts: WaitOptions{
+					ClientID: "CLIENT-ID",
+					DeviceCode: &CodeResponse{
+						DeviceCode:      "DEVIC",
+						UserCode:        "123-abc",
+						VerificationURI: "http://verify.me",
+						ExpiresIn:       99,
+						Interval:        5,
+					},
+					newPoller: singletonFakePoller(3),
+				},
+			},
+			want: &api.AccessToken{
+				Token: "123abc",
+			},
+			posts: []postArgs{
+				{
+					url: "https://github.com/oauth",
+					params: url.Values{
+						"client_id":   {"CLIENT-ID"},
+						"device_code": {"DEVIC"},
+						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
+					},
+				},
+				{
+					url: "https://github.com/oauth",
+					params: url.Values{
+						"client_id":   {"CLIENT-ID"},
+						"device_code": {"DEVIC"},
+						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
+					},
+				},
+				{
+					url: "https://github.com/oauth",
+					params: url.Values{
+						"client_id":   {"CLIENT-ID"},
+						"device_code": {"DEVIC"},
+						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
+					},
+				},
+			},
+			assertFunc: func(t *testing.T, a args) {
+				// Get the created poller
+				_, poller := a.opts.newPoller(context.Background(), 0, 0)
+				got := poller.(*fakePoller).updatedIntervals
+				want := []time.Duration{10 * time.Second}
+				if !reflect.DeepEqual(got, want) {
+					t.Errorf("unexpected updated intervals = %v, want %v", got, want)
+				}
+			},
+		},
+		{
+			name: "success with multiple slow down, no interval in returned response",
+			args: args{
+				http: apiClient{
+					stubs: []apiStub{
+						{
+							body:        "error=authorization_pending",
+							status:      200,
+							contentType: "application/x-www-form-urlencoded; charset=utf-8",
+						},
+						{
+							body:        "error=slow_down",
+							status:      200,
+							contentType: "application/x-www-form-urlencoded; charset=utf-8",
+						},
+						{
+							body:        "error=slow_down",
+							status:      200,
+							contentType: "application/x-www-form-urlencoded; charset=utf-8",
+						},
+						{
+							body:        "access_token=123abc",
+							status:      200,
+							contentType: "application/x-www-form-urlencoded; charset=utf-8",
+						},
+					},
+				},
+				url: "https://github.com/oauth",
+				opts: WaitOptions{
+					ClientID: "CLIENT-ID",
+					DeviceCode: &CodeResponse{
+						DeviceCode:      "DEVIC",
+						UserCode:        "123-abc",
+						VerificationURI: "http://verify.me",
+						ExpiresIn:       99,
+						Interval:        5,
+					},
+					newPoller: singletonFakePoller(4),
+				},
+			},
+			want: &api.AccessToken{
+				Token: "123abc",
+			},
+			posts: []postArgs{
+				{
+					url: "https://github.com/oauth",
+					params: url.Values{
+						"client_id":   {"CLIENT-ID"},
+						"device_code": {"DEVIC"},
+						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
+					},
+				},
+				{
+					url: "https://github.com/oauth",
+					params: url.Values{
+						"client_id":   {"CLIENT-ID"},
+						"device_code": {"DEVIC"},
+						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
+					},
+				},
+				{
+					url: "https://github.com/oauth",
+					params: url.Values{
+						"client_id":   {"CLIENT-ID"},
+						"device_code": {"DEVIC"},
+						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
+					},
+				},
+				{
+					url: "https://github.com/oauth",
+					params: url.Values{
+						"client_id":   {"CLIENT-ID"},
+						"device_code": {"DEVIC"},
+						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
+					},
+				},
+			},
+			assertFunc: func(t *testing.T, a args) {
+				// Get the created poller
+				_, poller := a.opts.newPoller(context.Background(), 0, 0)
+				got := poller.(*fakePoller).updatedIntervals
+				want := []time.Duration{10 * time.Second, 15 * time.Second}
+				if !reflect.DeepEqual(got, want) {
+					t.Errorf("unexpected updated intervals = %v, want %v", got, want)
+				}
 			},
 		},
 		{
@@ -392,7 +731,7 @@ func TestPollToken(t *testing.T) {
 						ExpiresIn:       99,
 						Interval:        5,
 					},
-					newPoller: makeFakePoller(1),
+					newPoller: singletonFakePoller(1),
 				},
 			},
 			want: &api.AccessToken{
@@ -437,7 +776,7 @@ func TestPollToken(t *testing.T) {
 						ExpiresIn:       14,
 						Interval:        5,
 					},
-					newPoller: makeFakePoller(2),
+					newPoller: singletonFakePoller(2),
 				},
 			},
 			wantErr: "context deadline exceeded",
@@ -482,7 +821,7 @@ func TestPollToken(t *testing.T) {
 						ExpiresIn:       99,
 						Interval:        5,
 					},
-					newPoller: makeFakePoller(1),
+					newPoller: singletonFakePoller(1),
 				},
 			},
 			wantErr: "access_denied",
@@ -514,13 +853,28 @@ func TestPollToken(t *testing.T) {
 			if !reflect.DeepEqual(tt.args.http.calls, tt.posts) {
 				t.Errorf("PostForm() = %v, want %v", tt.args.http.calls, tt.posts)
 			}
+
+			if tt.assertFunc != nil {
+				tt.assertFunc(t, tt.args)
+			}
 		})
 	}
 }
 
 type fakePoller struct {
-	maxWaits int
-	count    int
+	interval         time.Duration
+	maxWaits         int
+	count            int
+	updatedIntervals []time.Duration
+}
+
+func (p *fakePoller) GetInterval() time.Duration {
+	return p.interval
+}
+
+func (p *fakePoller) SetInterval(d time.Duration) {
+	p.interval = d
+	p.updatedIntervals = append(p.updatedIntervals, d)
 }
 
 func (p *fakePoller) Wait() error {

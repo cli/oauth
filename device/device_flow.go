@@ -148,7 +148,7 @@ type WaitOptions struct {
 
 // Wait polls the server at uri until authorization completes.
 func Wait(ctx context.Context, c httpClient, uri string, opts WaitOptions) (*api.AccessToken, error) {
-	checkInterval := time.Duration(opts.DeviceCode.Interval) * time.Second
+	baseCheckInterval := time.Duration(opts.DeviceCode.Interval) * time.Second
 	expiresIn := time.Duration(opts.DeviceCode.ExpiresIn) * time.Second
 	grantType := opts.GrantType
 	if opts.GrantType == "" {
@@ -159,7 +159,7 @@ func Wait(ctx context.Context, c httpClient, uri string, opts WaitOptions) (*api
 	if makePoller == nil {
 		makePoller = newPoller
 	}
-	_, poll := makePoller(ctx, checkInterval, expiresIn)
+	_, poll := makePoller(ctx, baseCheckInterval, expiresIn)
 
 	for {
 		if err := poll.Wait(); err != nil {
@@ -187,8 +187,35 @@ func Wait(ctx context.Context, c httpClient, uri string, opts WaitOptions) (*api
 		token, err := resp.AccessToken()
 		if err == nil {
 			return token, nil
-		} else if !(errors.As(err, &apiError) && apiError.Code == "authorization_pending") {
+		}
+
+		if !errors.As(err, &apiError) {
 			return nil, err
 		}
+
+		if apiError.Code == "authorization_pending" {
+			// Keep polling
+			continue
+		}
+
+		if apiError.Code == "slow_down" {
+			// Based on the RFC spec, we must add 5 seconds to our current polling interval.
+			// (See https://www.rfc-editor.org/rfc/rfc8628#section-3.5)
+			newInterval := poll.GetInterval() + 5*time.Second
+
+			// GitHub OAuth API returns the new interval in seconds in the response.
+			// We should try to use that if provided. It's okay if we couldn't find
+			// it as we have already increased our interval as of the RFC spec.
+			if s := resp.Get("interval"); s != "" {
+				if v, err := strconv.ParseInt(s, 10, 64); err == nil && v > 0 {
+					newInterval = time.Duration(v) * time.Second
+				}
+			}
+
+			poll.SetInterval(newInterval)
+			continue
+		}
+
+		return nil, err
 	}
 }
