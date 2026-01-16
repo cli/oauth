@@ -453,7 +453,7 @@ func TestPollToken(t *testing.T) {
 				// Get the created poller
 				_, poller := a.opts.newPoller(context.Background(), 0, 0)
 				got := poller.(*fakePoller).updatedIntervals
-				want := []time.Duration{22 * time.Second}
+				want := []time.Duration{25 * time.Second}
 				if !reflect.DeepEqual(got, want) {
 					t.Errorf("unexpected updated intervals = %v, want %v", got, want)
 				}
@@ -540,7 +540,7 @@ func TestPollToken(t *testing.T) {
 				// Get the created poller
 				_, poller := a.opts.newPoller(context.Background(), 0, 0)
 				got := poller.(*fakePoller).updatedIntervals
-				want := []time.Duration{22 * time.Second, 33 * time.Second}
+				want := []time.Duration{25 * time.Second, 36 * time.Second}
 				if !reflect.DeepEqual(got, want) {
 					t.Errorf("unexpected updated intervals = %v, want %v", got, want)
 				}

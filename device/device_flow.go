@@ -206,9 +206,13 @@ func Wait(ctx context.Context, c httpClient, uri string, opts WaitOptions) (*api
 			// GitHub OAuth API returns the new interval in seconds in the response.
 			// We should try to use that if provided. It's okay if we couldn't find
 			// it as we have already increased our interval as of the RFC spec.
+			//
+			// Add a small safety buffer when we take the server-provided interval to
+			// avoid polling slightly too early due to clock skew / timer drift.
+			const githubIntervalSafetyMargin = 3 * time.Second
 			if s := resp.Get("interval"); s != "" {
 				if v, err := strconv.ParseInt(s, 10, 64); err == nil && v > 0 {
-					newInterval = time.Duration(v) * time.Second
+					newInterval = time.Duration(v)*time.Second + githubIntervalSafetyMargin
 				}
 			}
 
