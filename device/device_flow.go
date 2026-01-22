@@ -143,11 +143,44 @@ type WaitOptions struct {
 	// GrantType overrides the default value specified by OAuth 2.0 Device Code. Optional.
 	GrantType string
 
-	newPoller pollerFactory
+	newPoller                pollerFactory
+	calculateTimeDriftRatioF func(tstart, tstop time.Time) float64
 }
+
+const (
+	primaryIntervalMultiplier   = 1.2
+	secondaryIntervalMultiplier = 1.4
+)
 
 // Wait polls the server at uri until authorization completes.
 func Wait(ctx context.Context, c httpClient, uri string, opts WaitOptions) (*api.AccessToken, error) {
+	// We know that in virtualised environments (e.g. WSL or VMs), the monotonic
+	// clock, which is the source of time measurements in Go, can run faster than
+	// real time. So, polling intervals should be adjusted to avoid falling into
+	// an endless loop of "slow_down" errors. See the following issue in cli/cli
+	// for more context (especially what's after this particular comment):
+	//   - https://github.com/cli/cli/issues/9370#issuecomment-3759706125
+	//
+	// We've observed ~10% faster ticking, thanks to community, but a chat with
+	// AI suggests it's typically between 5-15% on WSL, and can get up to 30% in
+	// worst cases. There are issues reported on the WSL repo, but I couldn't
+	// find any documented/conclusive data about this.
+	//
+	// See more:
+	//   - https://github.com/microsoft/WSL/issues/12583
+	//
+	// What we're doing here is to play on the safe side by applying a default
+	// 20% increase to the polling interval from the start. That is, instead of
+	// 5s, we begin with 6s waits. This should resolve most cases without any
+	// "slow_down" errors. However, upon receiving a "slow_down" from the OAuth
+	// server, we will bump the safety margin to 40%. This will eliminate further
+	// "slow_down"s in most cases.
+	//
+	// We also bail out if we receive more than two "slow_down" errors, as that's
+	// probably an indication of severe clock drift. In such cases, we'll check
+	// the time drift between the monotonic and the wall clocks and report it in
+	// the error message to hint the user at the root cause.
+
 	baseCheckInterval := time.Duration(opts.DeviceCode.Interval) * time.Second
 	expiresIn := time.Duration(opts.DeviceCode.ExpiresIn) * time.Second
 	grantType := opts.GrantType
@@ -161,10 +194,22 @@ func Wait(ctx context.Context, c httpClient, uri string, opts WaitOptions) (*api
 	}
 	_, poll := makePoller(ctx, baseCheckInterval, expiresIn)
 
+	calculateTimeDriftRatioF := opts.calculateTimeDriftRatioF
+	if calculateTimeDriftRatioF == nil {
+		calculateTimeDriftRatioF = calculateTimeDriftRatio
+	}
+
+	multiplier := primaryIntervalMultiplier
+
+	var slowDowns int
 	for {
-		if err := poll.Wait(); err != nil {
+		tstart := time.Now()
+
+		if err := poll.Wait(multiplier); err != nil {
 			return nil, err
 		}
+
+		tstop := time.Now()
 
 		values := url.Values{
 			"client_id":   {opts.ClientID},
@@ -199,6 +244,23 @@ func Wait(ctx context.Context, c httpClient, uri string, opts WaitOptions) (*api
 		}
 
 		if apiError.Code == "slow_down" {
+			slowDowns++
+
+			// See if we can detect a drift between the monotonic and wall clocks.
+			driftRatio := calculateTimeDriftRatioF(tstart, tstop)
+
+			// A positive drift ratio means the monotonic clock is faster than
+			// the wall clock. We should avoid hanging here in an endless loop of
+			// slow-downs.
+			//
+			// A negative drift (monotonic clock is slower than the wall clock),
+			// should not cause slow_down errors, unless the slow monotonic clock
+			// is still ticking faster than the OAuth server's clock. For such
+			// cases we tolerate a few more slow-downs.
+			if slowDowns > 2 && driftRatio > 0.05 || slowDowns > 4 && driftRatio < 0 {
+				return nil, fmt.Errorf("received too many slow_down responses; detected clock drift of roughly %.0f%% between monotonic and wall clocks; please ensure your system clock is accurate", driftRatio*100)
+			}
+
 			// Based on the RFC spec, we must add 5 seconds to our current polling interval.
 			// (See https://www.rfc-editor.org/rfc/rfc8628#section-3.5)
 			newInterval := poll.GetInterval() + 5*time.Second
@@ -213,9 +275,17 @@ func Wait(ctx context.Context, c httpClient, uri string, opts WaitOptions) (*api
 			}
 
 			poll.SetInterval(newInterval)
+			multiplier = secondaryIntervalMultiplier
 			continue
 		}
 
 		return nil, err
 	}
+}
+
+func calculateTimeDriftRatio(tstart, tstop time.Time) float64 {
+	elapsedWall := tstop.UnixNano() - tstart.UnixNano()
+	elapsedMono := tstop.Sub(tstart).Nanoseconds()
+	drift := elapsedMono - elapsedWall
+	return float64(drift) / float64(elapsedWall)
 }
