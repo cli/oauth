@@ -176,10 +176,9 @@ func Wait(ctx context.Context, c httpClient, uri string, opts WaitOptions) (*api
 	// server, we will bump the safety margin to 40%. This will eliminate further
 	// "slow_down"s in most cases.
 	//
-	// We also bail out if we receive more than two "slow_down" errors, as that's
-	// probably an indication of severe clock drift. In such cases, we'll check
-	// the time drift between the monotonic and the wall clocks and report it in
-	// the error message to hint the user at the root cause.
+	// We also bail out if we receive two "slow_down" errors, as that's probably
+	// an indication of severe clock drift. In such cases, we'll report the
+	// measured clock drift to hint the user at the root cause.
 
 	baseCheckInterval := time.Duration(opts.DeviceCode.Interval) * time.Second
 	expiresIn := time.Duration(opts.DeviceCode.ExpiresIn) * time.Second
