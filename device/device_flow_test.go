@@ -453,68 +453,6 @@ func TestPollToken(t *testing.T) {
 			},
 		},
 		{
-			name: "success with multiple slow down, new interval in returned response",
-			args: args{
-				http: apiClient{
-					stubs: []apiStub{
-						{
-							body:        "error=authorization_pending",
-							status:      200,
-							contentType: "application/x-www-form-urlencoded; charset=utf-8",
-						},
-						{
-							body:        "error=slow_down&error_description=Too+many+requests+have+been+made+in+the+same+timeframe.&error_uri=https%3A%2F%2Fdocs.github.com&interval=22",
-							status:      200,
-							contentType: "application/x-www-form-urlencoded; charset=utf-8",
-						},
-						{
-							body:        "error=slow_down&error_description=Too+many+requests+have+been+made+in+the+same+timeframe.&error_uri=https%3A%2F%2Fdocs.github.com&interval=33",
-							status:      200,
-							contentType: "application/x-www-form-urlencoded; charset=utf-8",
-						},
-						{
-							body:        "access_token=123abc",
-							status:      200,
-							contentType: "application/x-www-form-urlencoded; charset=utf-8",
-						},
-					},
-				},
-				url: "https://github.com/oauth",
-				opts: WaitOptions{
-					ClientID: "CLIENT-ID",
-					DeviceCode: &CodeResponse{
-						DeviceCode:      "DEVIC",
-						UserCode:        "123-abc",
-						VerificationURI: "http://verify.me",
-						ExpiresIn:       99,
-						Interval:        5,
-					},
-					newPoller: singletonFakePoller(4),
-				},
-			},
-			want: &api.AccessToken{
-				Token: "123abc",
-			},
-			posts: repeatPostArgs(4, postArgs{
-				url: "https://github.com/oauth",
-				params: url.Values{
-					"client_id":   {"CLIENT-ID"},
-					"device_code": {"DEVIC"},
-					"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-				},
-			}),
-			assertFunc: func(t *testing.T, a args) {
-				// Get the created poller
-				_, poller := a.opts.newPoller(context.Background(), 0, 0)
-				got := poller.(*fakePoller).updatedIntervals
-				want := []time.Duration{22 * time.Second, 33 * time.Second}
-				if !reflect.DeepEqual(got, want) {
-					t.Errorf("unexpected updated intervals = %v, want %v", got, want)
-				}
-				assertWaitMultipliers(t, []float64{1.2, 1.2, 1.4, 1.4}, poller.(*fakePoller).waitMultipliers)
-			},
-		},
-		{
 			name: "success with slow down, no interval in returned response",
 			args: args{
 				http: apiClient{
@@ -572,68 +510,6 @@ func TestPollToken(t *testing.T) {
 			},
 		},
 		{
-			name: "success with multiple slow down, no interval in returned response",
-			args: args{
-				http: apiClient{
-					stubs: []apiStub{
-						{
-							body:        "error=authorization_pending",
-							status:      200,
-							contentType: "application/x-www-form-urlencoded; charset=utf-8",
-						},
-						{
-							body:        "error=slow_down",
-							status:      200,
-							contentType: "application/x-www-form-urlencoded; charset=utf-8",
-						},
-						{
-							body:        "error=slow_down",
-							status:      200,
-							contentType: "application/x-www-form-urlencoded; charset=utf-8",
-						},
-						{
-							body:        "access_token=123abc",
-							status:      200,
-							contentType: "application/x-www-form-urlencoded; charset=utf-8",
-						},
-					},
-				},
-				url: "https://github.com/oauth",
-				opts: WaitOptions{
-					ClientID: "CLIENT-ID",
-					DeviceCode: &CodeResponse{
-						DeviceCode:      "DEVIC",
-						UserCode:        "123-abc",
-						VerificationURI: "http://verify.me",
-						ExpiresIn:       99,
-						Interval:        5,
-					},
-					newPoller: singletonFakePoller(4),
-				},
-			},
-			want: &api.AccessToken{
-				Token: "123abc",
-			},
-			posts: repeatPostArgs(4, postArgs{
-				url: "https://github.com/oauth",
-				params: url.Values{
-					"client_id":   {"CLIENT-ID"},
-					"device_code": {"DEVIC"},
-					"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-				},
-			}),
-			assertFunc: func(t *testing.T, a args) {
-				// Get the created poller
-				_, poller := a.opts.newPoller(context.Background(), 0, 0)
-				got := poller.(*fakePoller).updatedIntervals
-				want := []time.Duration{10 * time.Second, 15 * time.Second}
-				if !reflect.DeepEqual(got, want) {
-					t.Errorf("unexpected updated intervals = %v, want %v", got, want)
-				}
-				assertWaitMultipliers(t, []float64{1.2, 1.2, 1.4, 1.4}, poller.(*fakePoller).waitMultipliers)
-			},
-		},
-		{
 			name: "failure with exceeding slow downs",
 			args: args{
 				http: apiClient{
@@ -653,11 +529,6 @@ func TestPollToken(t *testing.T) {
 							status:      200,
 							contentType: "application/x-www-form-urlencoded; charset=utf-8",
 						},
-						{
-							body:        "error=slow_down",
-							status:      200,
-							contentType: "application/x-www-form-urlencoded; charset=utf-8",
-						},
 					},
 				},
 				url: "https://github.com/oauth",
@@ -670,12 +541,12 @@ func TestPollToken(t *testing.T) {
 						ExpiresIn:       99,
 						Interval:        5,
 					},
-					newPoller:                singletonFakePoller(4),
+					newPoller:                singletonFakePoller(3),
 					calculateTimeDriftRatioF: newCalculateTimeDriftRatioStub(0.10),
 				},
 			},
 			wantErr: `too many slow_down responses; detected clock drift of roughly 10% between monotonic and wall clocks; please ensure your system clock is accurate`,
-			posts: repeatPostArgs(4, postArgs{
+			posts: repeatPostArgs(3, postArgs{
 				url: "https://github.com/oauth",
 				params: url.Values{
 					"client_id":   {"CLIENT-ID"},
@@ -687,11 +558,11 @@ func TestPollToken(t *testing.T) {
 				// Get the created poller
 				_, poller := a.opts.newPoller(context.Background(), 0, 0)
 				got := poller.(*fakePoller).updatedIntervals
-				want := []time.Duration{10 * time.Second, 15 * time.Second}
+				want := []time.Duration{10 * time.Second}
 				if !reflect.DeepEqual(got, want) {
 					t.Errorf("unexpected updated intervals = %v, want %v", got, want)
 				}
-				assertWaitMultipliers(t, []float64{1.2, 1.2, 1.4, 1.4}, poller.(*fakePoller).waitMultipliers)
+				assertWaitMultipliers(t, []float64{1.2, 1.2, 1.4}, poller.(*fakePoller).waitMultipliers)
 			},
 		},
 		{

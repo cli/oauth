@@ -247,11 +247,11 @@ func Wait(ctx context.Context, c httpClient, uri string, opts WaitOptions) (*api
 			slowDowns++
 
 			// Since we have already added the secondary safety multiplier upon
-			// receiving the first slow_down, getting more than 2 is likely an
-			// indication of a huge clock drift (40% faster mono). More polling
+			// receiving the first slow_down, getting a second one is a strong
+			// indication of a huge clock drift (+40% faster mono). More polling
 			// is just futile unless we apply some unreasonably large multiplier.
 			// So, we bail out and inform the user about the potential cause.
-			if slowDowns > 2 {
+			if slowDowns > 1 {
 				driftRatio := calculateTimeDriftRatioF(tstart, tstop)
 				return nil, fmt.Errorf("too many slow_down responses; detected clock drift of roughly %.0f%% between monotonic and wall clocks; please ensure your system clock is accurate", driftRatio*100)
 			}
