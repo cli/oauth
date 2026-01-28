@@ -297,6 +297,14 @@ func TestRequestCode(t *testing.T) {
 }
 
 func TestPollToken(t *testing.T) {
+	repeatPostArgs := func(count int, args postArgs) []postArgs {
+		posts := make([]postArgs, count)
+		for i := 0; i < count; i++ {
+			posts[i] = args
+		}
+		return posts
+	}
+
 	assertWaitMultipliers := func(t *testing.T, want, got []float64) {
 		if !reflect.DeepEqual(got, want) {
 			t.Errorf("unexpected wait multipliers; got %#v, want %#v", got, want)
@@ -375,24 +383,14 @@ func TestPollToken(t *testing.T) {
 			want: &api.AccessToken{
 				Token: "123abc",
 			},
-			posts: []postArgs{
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
+			posts: repeatPostArgs(2, postArgs{
+				url: "https://github.com/oauth",
+				params: url.Values{
+					"client_id":   {"CLIENT-ID"},
+					"device_code": {"DEVIC"},
+					"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
 				},
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
-				},
-			},
+			}),
 			assertFunc: func(t *testing.T, a args) {
 				// Get the created poller
 				_, poller := a.opts.newPoller(context.Background(), 0, 0)
@@ -440,32 +438,14 @@ func TestPollToken(t *testing.T) {
 			want: &api.AccessToken{
 				Token: "123abc",
 			},
-			posts: []postArgs{
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
+			posts: repeatPostArgs(3, postArgs{
+				url: "https://github.com/oauth",
+				params: url.Values{
+					"client_id":   {"CLIENT-ID"},
+					"device_code": {"DEVIC"},
+					"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
 				},
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
-				},
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
-				},
-			},
+			}),
 			assertFunc: func(t *testing.T, a args) {
 				// Get the created poller
 				_, poller := a.opts.newPoller(context.Background(), 0, 0)
@@ -520,40 +500,14 @@ func TestPollToken(t *testing.T) {
 			want: &api.AccessToken{
 				Token: "123abc",
 			},
-			posts: []postArgs{
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
+			posts: repeatPostArgs(4, postArgs{
+				url: "https://github.com/oauth",
+				params: url.Values{
+					"client_id":   {"CLIENT-ID"},
+					"device_code": {"DEVIC"},
+					"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
 				},
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
-				},
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
-				},
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
-				},
-			},
+			}),
 			assertFunc: func(t *testing.T, a args) {
 				// Get the created poller
 				_, poller := a.opts.newPoller(context.Background(), 0, 0)
@@ -603,32 +557,14 @@ func TestPollToken(t *testing.T) {
 			want: &api.AccessToken{
 				Token: "123abc",
 			},
-			posts: []postArgs{
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
+			posts: repeatPostArgs(3, postArgs{
+				url: "https://github.com/oauth",
+				params: url.Values{
+					"client_id":   {"CLIENT-ID"},
+					"device_code": {"DEVIC"},
+					"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
 				},
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
-				},
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
-				},
-			},
+			}),
 			assertFunc: func(t *testing.T, a args) {
 				// Get the created poller
 				_, poller := a.opts.newPoller(context.Background(), 0, 0)
@@ -683,40 +619,14 @@ func TestPollToken(t *testing.T) {
 			want: &api.AccessToken{
 				Token: "123abc",
 			},
-			posts: []postArgs{
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
+			posts: repeatPostArgs(4, postArgs{
+				url: "https://github.com/oauth",
+				params: url.Values{
+					"client_id":   {"CLIENT-ID"},
+					"device_code": {"DEVIC"},
+					"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
 				},
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
-				},
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
-				},
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
-				},
-			},
+			}),
 			assertFunc: func(t *testing.T, a args) {
 				// Get the created poller
 				_, poller := a.opts.newPoller(context.Background(), 0, 0)
@@ -777,48 +687,14 @@ func TestPollToken(t *testing.T) {
 			want: &api.AccessToken{
 				Token: "123abc",
 			},
-			posts: []postArgs{
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
+			posts: repeatPostArgs(5, postArgs{
+				url: "https://github.com/oauth",
+				params: url.Values{
+					"client_id":   {"CLIENT-ID"},
+					"device_code": {"DEVIC"},
+					"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
 				},
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
-				},
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
-				},
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
-				},
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
-				},
-			},
+			}),
 			assertFunc: func(t *testing.T, a args) {
 				// Get the created poller
 				_, poller := a.opts.newPoller(context.Background(), 0, 0)
@@ -872,40 +748,14 @@ func TestPollToken(t *testing.T) {
 				},
 			},
 			wantErr: `received too many slow_down responses; detected clock drift of roughly 5% between monotonic and wall clocks; please ensure your system clock is accurate`,
-			posts: []postArgs{
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
+			posts: repeatPostArgs(4, postArgs{
+				url: "https://github.com/oauth",
+				params: url.Values{
+					"client_id":   {"CLIENT-ID"},
+					"device_code": {"DEVIC"},
+					"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
 				},
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
-				},
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
-				},
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
-				},
-			},
+			}),
 			assertFunc: func(t *testing.T, a args) {
 				// Get the created poller
 				_, poller := a.opts.newPoller(context.Background(), 0, 0)
@@ -969,56 +819,14 @@ func TestPollToken(t *testing.T) {
 				},
 			},
 			wantErr: `received too many slow_down responses; detected clock drift of roughly -1% between monotonic and wall clocks; please ensure your system clock is accurate`,
-			posts: []postArgs{
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
+			posts: repeatPostArgs(6, postArgs{
+				url: "https://github.com/oauth",
+				params: url.Values{
+					"client_id":   {"CLIENT-ID"},
+					"device_code": {"DEVIC"},
+					"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
 				},
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
-				},
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
-				},
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
-				},
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
-				},
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
-				},
-			},
+			}),
 			assertFunc: func(t *testing.T, a args) {
 				// Get the created poller
 				_, poller := a.opts.newPoller(context.Background(), 0, 0)
@@ -1103,24 +911,14 @@ func TestPollToken(t *testing.T) {
 				},
 			},
 			wantErr: "context deadline exceeded",
-			posts: []postArgs{
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
+			posts: repeatPostArgs(2, postArgs{
+				url: "https://github.com/oauth",
+				params: url.Values{
+					"client_id":   {"CLIENT-ID"},
+					"device_code": {"DEVIC"},
+					"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
 				},
-				{
-					url: "https://github.com/oauth",
-					params: url.Values{
-						"client_id":   {"CLIENT-ID"},
-						"device_code": {"DEVIC"},
-						"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-					},
-				},
-			},
+			}),
 		},
 		{
 			name: "access denied",
