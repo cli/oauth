@@ -326,14 +326,9 @@ func TestPollToken(t *testing.T) {
 		}
 	}
 
-	newCalculateTimeDriftRatioStub := func(driftRatios ...float64) func(tstart, tstop time.Time) float64 {
-		var count int
+	newCalculateTimeDriftRatioStub := func(driftRatio float64) func(tstart, tstop time.Time) float64 {
 		return func(_, _ time.Time) float64 {
-			count++
-			if count > len(driftRatios) {
-				return 0
-			}
-			return driftRatios[count-1]
+			return driftRatio
 		}
 	}
 
@@ -639,75 +634,7 @@ func TestPollToken(t *testing.T) {
 			},
 		},
 		{
-			name: "success with multiple slow downs, and acceptable monotonic clock drift",
-			args: args{
-				http: apiClient{
-					stubs: []apiStub{
-						{
-							body:        "error=authorization_pending",
-							status:      200,
-							contentType: "application/x-www-form-urlencoded; charset=utf-8",
-						},
-						{
-							body:        "error=slow_down",
-							status:      200,
-							contentType: "application/x-www-form-urlencoded; charset=utf-8",
-						},
-						{
-							body:        "error=slow_down",
-							status:      200,
-							contentType: "application/x-www-form-urlencoded; charset=utf-8",
-						},
-						{
-							body:        "error=slow_down",
-							status:      200,
-							contentType: "application/x-www-form-urlencoded; charset=utf-8",
-						},
-						{
-							body:        "access_token=123abc",
-							status:      200,
-							contentType: "application/x-www-form-urlencoded; charset=utf-8",
-						},
-					},
-				},
-				url: "https://github.com/oauth",
-				opts: WaitOptions{
-					ClientID: "CLIENT-ID",
-					DeviceCode: &CodeResponse{
-						DeviceCode:      "DEVIC",
-						UserCode:        "123-abc",
-						VerificationURI: "http://verify.me",
-						ExpiresIn:       99,
-						Interval:        5,
-					},
-					newPoller:                singletonFakePoller(5),
-					calculateTimeDriftRatioF: newCalculateTimeDriftRatioStub(0.0499, 0.0499, 0.0499),
-				},
-			},
-			want: &api.AccessToken{
-				Token: "123abc",
-			},
-			posts: repeatPostArgs(5, postArgs{
-				url: "https://github.com/oauth",
-				params: url.Values{
-					"client_id":   {"CLIENT-ID"},
-					"device_code": {"DEVIC"},
-					"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-				},
-			}),
-			assertFunc: func(t *testing.T, a args) {
-				// Get the created poller
-				_, poller := a.opts.newPoller(context.Background(), 0, 0)
-				got := poller.(*fakePoller).updatedIntervals
-				want := []time.Duration{10 * time.Second, 15 * time.Second, 20 * time.Second}
-				if !reflect.DeepEqual(got, want) {
-					t.Errorf("unexpected updated intervals = %v, want %v", got, want)
-				}
-				assertWaitMultipliers(t, []float64{1.2, 1.2, 1.4, 1.4, 1.4}, poller.(*fakePoller).waitMultipliers)
-			},
-		},
-		{
-			name: "failure with multiple slow downs, due to high clock drift (mono faster)",
+			name: "failure with exceeding slow downs",
 			args: args{
 				http: apiClient{
 					stubs: []apiStub{
@@ -744,10 +671,10 @@ func TestPollToken(t *testing.T) {
 						Interval:        5,
 					},
 					newPoller:                singletonFakePoller(4),
-					calculateTimeDriftRatioF: newCalculateTimeDriftRatioStub(0.051, 0.051, 0.051),
+					calculateTimeDriftRatioF: newCalculateTimeDriftRatioStub(0.10),
 				},
 			},
-			wantErr: `received too many slow_down responses; detected clock drift of roughly 5% between monotonic and wall clocks; please ensure your system clock is accurate`,
+			wantErr: `too many slow_down responses; detected clock drift of roughly 10% between monotonic and wall clocks; please ensure your system clock is accurate`,
 			posts: repeatPostArgs(4, postArgs{
 				url: "https://github.com/oauth",
 				params: url.Values{
@@ -765,77 +692,6 @@ func TestPollToken(t *testing.T) {
 					t.Errorf("unexpected updated intervals = %v, want %v", got, want)
 				}
 				assertWaitMultipliers(t, []float64{1.2, 1.2, 1.4, 1.4}, poller.(*fakePoller).waitMultipliers)
-			},
-		},
-		{
-			name: "failure with multiple slow downs, due to high clock drift (mono slower)",
-			args: args{
-				http: apiClient{
-					stubs: []apiStub{
-						{
-							body:        "error=authorization_pending",
-							status:      200,
-							contentType: "application/x-www-form-urlencoded; charset=utf-8",
-						},
-						{
-							body:        "error=slow_down",
-							status:      200,
-							contentType: "application/x-www-form-urlencoded; charset=utf-8",
-						},
-						{
-							body:        "error=slow_down",
-							status:      200,
-							contentType: "application/x-www-form-urlencoded; charset=utf-8",
-						},
-						{
-							body:        "error=slow_down",
-							status:      200,
-							contentType: "application/x-www-form-urlencoded; charset=utf-8",
-						},
-						{
-							body:        "error=slow_down",
-							status:      200,
-							contentType: "application/x-www-form-urlencoded; charset=utf-8",
-						},
-						{
-							body:        "error=slow_down",
-							status:      200,
-							contentType: "application/x-www-form-urlencoded; charset=utf-8",
-						},
-					},
-				},
-				url: "https://github.com/oauth",
-				opts: WaitOptions{
-					ClientID: "CLIENT-ID",
-					DeviceCode: &CodeResponse{
-						DeviceCode:      "DEVIC",
-						UserCode:        "123-abc",
-						VerificationURI: "http://verify.me",
-						ExpiresIn:       99,
-						Interval:        5,
-					},
-					newPoller:                singletonFakePoller(6),
-					calculateTimeDriftRatioF: newCalculateTimeDriftRatioStub(-0.051, -0.051, -0.051, -0.051, -0.051),
-				},
-			},
-			wantErr: `received too many slow_down responses; detected clock drift of roughly -5% between monotonic and wall clocks; please ensure your system clock is accurate`,
-			posts: repeatPostArgs(6, postArgs{
-				url: "https://github.com/oauth",
-				params: url.Values{
-					"client_id":   {"CLIENT-ID"},
-					"device_code": {"DEVIC"},
-					"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
-				},
-			}),
-			assertFunc: func(t *testing.T, a args) {
-				// Get the created poller
-				_, poller := a.opts.newPoller(context.Background(), 0, 0)
-				got := poller.(*fakePoller).updatedIntervals
-				want := []time.Duration{10 * time.Second, 15 * time.Second, 20 * time.Second, 25 * time.Second}
-				if !reflect.DeepEqual(got, want) {
-					t.Errorf("unexpected updated intervals = %v, want %v", got, want)
-				}
-				assertWaitMultipliers(t, []float64{1.2, 1.2, 1.4, 1.4, 1.4, 1.4}, poller.(*fakePoller).waitMultipliers)
 			},
 		},
 		{

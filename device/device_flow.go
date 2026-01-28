@@ -246,19 +246,14 @@ func Wait(ctx context.Context, c httpClient, uri string, opts WaitOptions) (*api
 		if apiError.Code == "slow_down" {
 			slowDowns++
 
-			// See if we can detect a drift between the monotonic and wall clocks.
-			driftRatio := calculateTimeDriftRatioF(tstart, tstop)
-
-			// A positive drift ratio means the monotonic clock is faster than
-			// the wall clock. We should avoid hanging here in an endless loop of
-			// slow-downs.
-			//
-			// A negative drift (monotonic clock is slower than the wall clock),
-			// should not cause slow_down errors, unless the slow monotonic clock
-			// is still ticking faster than the OAuth server's clock. For such
-			// cases we tolerate a few more slow-downs.
-			if slowDowns > 2 && driftRatio > 0.05 || slowDowns > 4 && driftRatio < -0.05 {
-				return nil, fmt.Errorf("received too many slow_down responses; detected clock drift of roughly %.0f%% between monotonic and wall clocks; please ensure your system clock is accurate", driftRatio*100)
+			// Since we have already added the secondary safety multiplier upon
+			// receiving the first slow_down, getting more than 2 is likely an
+			// indication of a huge clock drift (40% faster mono). More polling
+			// is just futile unless we apply some unreasonable large multiplier.
+			// So, we bail out and inform the user about the potential cause.
+			if slowDowns > 2 {
+				driftRatio := calculateTimeDriftRatioF(tstart, tstop)
+				return nil, fmt.Errorf("too many slow_down responses; detected clock drift of roughly %.0f%% between monotonic and wall clocks; please ensure your system clock is accurate", driftRatio*100)
 			}
 
 			// Based on the RFC spec, we must add 5 seconds to our current polling interval.
