@@ -707,7 +707,7 @@ func TestPollToken(t *testing.T) {
 			},
 		},
 		{
-			name: "failure with multiple slow downs, due to high clock drift (mono slower)",
+			name: "failure with multiple slow downs, due to high clock drift (mono faster)",
 			args: args{
 				http: apiClient{
 					stubs: []apiStub{
@@ -815,10 +815,10 @@ func TestPollToken(t *testing.T) {
 						Interval:        5,
 					},
 					newPoller:                singletonFakePoller(6),
-					calculateTimeDriftRatioF: newCalculateTimeDriftRatioStub(-0.01, -0.01, -0.01, -0.01, -0.01),
+					calculateTimeDriftRatioF: newCalculateTimeDriftRatioStub(-0.051, -0.051, -0.051, -0.051, -0.051),
 				},
 			},
-			wantErr: `received too many slow_down responses; detected clock drift of roughly -1% between monotonic and wall clocks; please ensure your system clock is accurate`,
+			wantErr: `received too many slow_down responses; detected clock drift of roughly -5% between monotonic and wall clocks; please ensure your system clock is accurate`,
 			posts: repeatPostArgs(6, postArgs{
 				url: "https://github.com/oauth",
 				params: url.Values{

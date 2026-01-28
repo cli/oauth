@@ -257,7 +257,7 @@ func Wait(ctx context.Context, c httpClient, uri string, opts WaitOptions) (*api
 			// should not cause slow_down errors, unless the slow monotonic clock
 			// is still ticking faster than the OAuth server's clock. For such
 			// cases we tolerate a few more slow-downs.
-			if slowDowns > 2 && driftRatio > 0.05 || slowDowns > 4 && driftRatio < 0 {
+			if slowDowns > 2 && driftRatio > 0.05 || slowDowns > 4 && driftRatio < -0.05 {
 				return nil, fmt.Errorf("received too many slow_down responses; detected clock drift of roughly %.0f%% between monotonic and wall clocks; please ensure your system clock is accurate", driftRatio*100)
 			}
 
