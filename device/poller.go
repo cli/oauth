@@ -2,13 +2,14 @@ package device
 
 import (
 	"context"
+	"math"
 	"time"
 )
 
 type poller interface {
 	GetInterval() time.Duration
 	SetInterval(time.Duration)
-	Wait() error
+	Wait(multiplier float64) error
 	Cancel()
 }
 
@@ -37,8 +38,9 @@ func (p *intervalPoller) SetInterval(d time.Duration) {
 	p.interval = d
 }
 
-func (p *intervalPoller) Wait() error {
-	t := time.NewTimer(p.interval)
+func (p *intervalPoller) Wait(multiplier float64) error {
+	interval := time.Duration(math.Ceil(float64(p.interval) * multiplier))
+	t := time.NewTimer(interval)
 	select {
 	case <-p.ctx.Done():
 		t.Stop()
