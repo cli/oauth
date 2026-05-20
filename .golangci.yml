@@ -1,15 +1,30 @@
+version: "2"
+
 linters:
+  default: standard
   enable:
-    - gofmt
     - godot
     - revive
+  settings:
+    errcheck:
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+    godot:
+      # comments to be checked: `declarations`, `toplevel`, or `all`
+      scope: declarations
+      # check that each sentence starts with a capital letter
+      capital: true
+  exclusions:
+    rules:
+      # The govet `inline` analyzer reports stdlib calls that cannot be inlined
+      # into files using an older Go language version (go.mod is go 1.13).
+      # These are not actionable in user code; suppress them.
+      - linters:
+          - govet
+        text: "^inline: cannot inline call to"
 
-linters-settings:
-  godot:
-    # comments to be checked: `declarations`, `toplevel`, or `all`
-    scope: declarations
-    # check that each sentence starts with a capital letter
-    capital: true
-
-issues:
-  exclude-use-default: false
+formatters:
+  enable:
+    - gofmt

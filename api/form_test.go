@@ -117,7 +117,7 @@ type apiClient struct {
 	postCount int
 }
 
-func (c *apiClient) PostForm(u string, params url.Values) (*http.Response, error) {
+func (c *apiClient) PostForm(_ string, _ url.Values) (*http.Response, error) {
 	c.postCount++
 	return &http.Response{
 		Body: ioutil.NopCloser(bytes.NewBufferString(c.body)),
