@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime"
 	"net/http"
 	"net/url"
@@ -78,7 +77,7 @@ func PostForm(c httpClient, u string, params url.Values) (*FormResponse, error) 
 	switch mediaType {
 	case "application/x-www-form-urlencoded":
 		var bb []byte
-		bb, err = ioutil.ReadAll(resp.Body)
+		bb, err = io.ReadAll(resp.Body)
 		if err != nil {
 			return r, err
 		}
@@ -105,7 +104,7 @@ func PostForm(c httpClient, u string, params url.Values) (*FormResponse, error) 
 			}
 		}
 	default:
-		_, err = io.Copy(ioutil.Discard, resp.Body)
+		_, err = io.Copy(io.Discard, resp.Body)
 		if err != nil {
 			return r, err
 		}
