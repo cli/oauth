@@ -26,6 +26,8 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Setup Go
         if: matrix.language == 'go'
@@ -38,6 +40,10 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           queries: security-and-quality
+
+      - name: Build Go
+        if: matrix.language == 'go'
+        run: go build ./...
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
