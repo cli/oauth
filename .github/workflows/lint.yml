@@ -11,6 +11,9 @@ on:
       - go.mod
       - go.sum
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -23,6 +26,8 @@ jobs:
 
       - name: Check out code
         uses: actions/checkout@v2
+        with:
+          persist-credentials: false
 
       - name: Verify dependencies
         env:
