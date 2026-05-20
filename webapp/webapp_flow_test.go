@@ -3,7 +3,7 @@ package webapp
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -112,7 +112,7 @@ func (c *apiClient) PostForm(u string, params url.Values) (*http.Response, error
 	c.calls = append(c.calls, postArgs{url: u, params: params})
 	c.postCount++
 	return &http.Response{
-		Body: ioutil.NopCloser(bytes.NewBufferString(stub.body)),
+		Body: io.NopCloser(bytes.NewBufferString(stub.body)),
 		Header: http.Header{
 			"Content-Type": {stub.contentType},
 		},

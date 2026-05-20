@@ -2,7 +2,7 @@ package api
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -120,7 +120,7 @@ type apiClient struct {
 func (c *apiClient) PostForm(_ string, _ url.Values) (*http.Response, error) {
 	c.postCount++
 	return &http.Response{
-		Body: ioutil.NopCloser(bytes.NewBufferString(c.body)),
+		Body: io.NopCloser(bytes.NewBufferString(c.body)),
 		Header: http.Header{
 			"Content-Type": {c.contentType},
 		},
