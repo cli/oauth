@@ -313,7 +313,7 @@ func TestPollToken(t *testing.T) {
 
 	singletonFakePoller := func(maxWaits int) pollerFactory {
 		var instance *fakePoller
-		return func(ctx context.Context, interval, expiresIn time.Duration) (context.Context, poller) {
+		return func(ctx context.Context, interval, _ time.Duration) (context.Context, poller) {
 			if instance != nil {
 				// This is to make the factory return the same instance in tests.
 				return ctx, instance
