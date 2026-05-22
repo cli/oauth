@@ -5,7 +5,7 @@ updates:
   schedule:
     interval: "daily"
   cooldown:
-    default-days: 5
+    default-days: 3
   ignore:
     - dependency-name: "*"
       update-types:
@@ -15,4 +15,4 @@ updates:
   schedule:
     interval: "daily"
   cooldown:
-    default-days: 5
+    default-days: 3
