@@ -13,10 +13,9 @@ type CodeResponse struct {
 	Code  string
 	State string
 }
-
-// bindLocalServer initializes a LocalServer that will listen on a randomly available TCP port.
-func bindLocalServer() (*localServer, error) {
-	listener, err := net.Listen("tcp4", "127.0.0.1:0")
+func bindLocalServerWithPort(port int) (*localServer, error) {
+	addr := fmt.Sprintf("127.0.0.1:%d", port)
+	listener, err := net.Listen("tcp4", addr)
 	if err != nil {
 		return nil, err
 	}
@@ -25,6 +24,12 @@ func bindLocalServer() (*localServer, error) {
 		listener:   listener,
 		resultChan: make(chan CodeResponse, 1),
 	}, nil
+}
+
+// bindLocalServer initializes a LocalServer that will listen on a randomly available TCP port.
+func bindLocalServer() (*localServer, error) {
+	return bindLocalServerWithPort(0)
+
 }
 
 type localServer struct {
