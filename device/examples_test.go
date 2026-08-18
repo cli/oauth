@@ -37,15 +37,15 @@ func ExampleRequestCode() {
 	fmt.Printf("Access token: %s\n", accessToken.Token)
 }
 
-// Request an expiring access token and a refresh token by adding the "offline_access" scope.
-// Servers that do not support expiring tokens ignore it and return a non-expiring token instead.
-func ExampleWithOfflineAccess() {
+// Request an expiring access token and a refresh token.
+// Servers that do not support expiring tokens ignore the request and return a non-expiring token instead.
+func ExampleWithRefreshToken() {
 	clientID := os.Getenv("OAUTH_CLIENT_ID")
 	scopes := []string{"repo", "read:org"}
 	httpClient := http.DefaultClient
 
 	code, err := device.RequestCode(httpClient, "https://github.com/login/device/code",
-		clientID, scopes, device.WithOfflineAccess())
+		clientID, scopes, device.WithRefreshToken())
 	if err != nil {
 		panic(err)
 	}

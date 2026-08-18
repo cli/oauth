@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestFlow_BrowserURL_offlineAccess(t *testing.T) {
+func TestFlow_BrowserURL_withRefreshToken(t *testing.T) {
 	tests := []struct {
 		name                string
 		scopes              []string
@@ -43,12 +43,15 @@ func TestFlow_BrowserURL_offlineAccess(t *testing.T) {
 				t.Fatalf("InitFlow: %v", err)
 			}
 
+			options := []BrowserURLOption{}
+			if tt.requestRefreshToken {
+				options = append(options, WithRefreshToken())
+			}
 			browserURL, err := flow.BrowserURL("https://github.com/login/oauth/authorize", BrowserParams{
-				ClientID:            "CLIENTID",
-				RedirectURI:         "http://127.0.0.1/callback",
-				Scopes:              tt.scopes,
-				RequestRefreshToken: tt.requestRefreshToken,
-			})
+				ClientID:    "CLIENTID",
+				RedirectURI: "http://127.0.0.1/callback",
+				Scopes:      tt.scopes,
+			}, options...)
 			if err != nil {
 				t.Fatalf("BrowserURL: %v", err)
 			}
@@ -72,11 +75,10 @@ func TestFlow_BrowserURL_doesNotMutateCallerScopes(t *testing.T) {
 
 	scopes := []string{"repo"}
 	if _, err := flow.BrowserURL("https://github.com/login/oauth/authorize", BrowserParams{
-		ClientID:            "CLIENTID",
-		RedirectURI:         "http://127.0.0.1/callback",
-		Scopes:              scopes,
-		RequestRefreshToken: true,
-	}); err != nil {
+		ClientID:    "CLIENTID",
+		RedirectURI: "http://127.0.0.1/callback",
+		Scopes:      scopes,
+	}, WithRefreshToken()); err != nil {
 		t.Fatalf("BrowserURL: %v", err)
 	}
 

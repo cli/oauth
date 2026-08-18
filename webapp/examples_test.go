@@ -26,12 +26,10 @@ func ExampleInitFlow() {
 		RedirectURI: callbackURL,
 		Scopes:      []string{"repo", "read:org"},
 		AllowSignup: true,
-
-		// Opt in to receiving an expiring access token and a refresh token. Servers without support
-		// for expiring tokens ignore this and return a non-expiring token with no refresh token.
-		RequestRefreshToken: true,
 	}
-	browserURL, err := flow.BrowserURL("https://github.com/login/oauth/authorize", params)
+	// WithRefreshToken requests an expiring access token and a refresh token. Servers without
+	// support for expiring tokens ignore it and return a non-expiring token with no refresh token.
+	browserURL, err := flow.BrowserURL("https://github.com/login/oauth/authorize", params, webapp.WithRefreshToken())
 	if err != nil {
 		panic(err)
 	}

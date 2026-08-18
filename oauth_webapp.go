@@ -34,10 +34,13 @@ func (oa *Flow) WebAppFlow() (*api.AccessToken, error) {
 		Scopes:      oa.Scopes,
 		Audience:    oa.Audience,
 		AllowSignup: true,
-
-		RequestRefreshToken: oa.RequestRefreshToken,
 	}
-	browserURL, err := flow.BrowserURL(host.AuthorizeURL, params)
+	browserOptions := []webapp.BrowserURLOption{}
+	if oa.RequestRefreshToken {
+		browserOptions = append(browserOptions, webapp.WithRefreshToken())
+	}
+
+	browserURL, err := flow.BrowserURL(host.AuthorizeURL, params, browserOptions...)
 	if err != nil {
 		return nil, err
 	}

@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestWithOfflineAccess(t *testing.T) {
+func TestWithRefreshToken(t *testing.T) {
 	tests := []struct {
 		name  string
 		scope string
@@ -19,7 +19,7 @@ func TestWithOfflineAccess(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			values := url.Values{"scope": {tt.scope}}
-			WithOfflineAccess()(&values)
+			WithRefreshToken()(&values)
 			if got := values.Get("scope"); got != tt.want {
 				t.Errorf("scope = %q, want %q", got, tt.want)
 			}
@@ -27,7 +27,7 @@ func TestWithOfflineAccess(t *testing.T) {
 	}
 }
 
-func TestRequestCode_withOfflineAccess(t *testing.T) {
+func TestRequestCode_withRefreshToken(t *testing.T) {
 	client := &apiClient{
 		stubs: []apiStub{
 			{
@@ -39,7 +39,7 @@ func TestRequestCode_withOfflineAccess(t *testing.T) {
 	}
 
 	if _, err := RequestCode(client, "https://example.com/device/code", "CLIENTID",
-		[]string{"repo"}, WithOfflineAccess()); err != nil {
+		[]string{"repo"}, WithRefreshToken()); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

@@ -10,8 +10,8 @@ compatible** — existing applications continue to receive non-expiring tokens w
 
 - `Flow.RequestRefreshToken` opts an authorization into expiring tokens by requesting the
   `offline_access` scope, in both Device flow and Web application flow. Also available as
-  `device.WithOfflineAccess()` and `webapp.BrowserParams.RequestRefreshToken` for callers using
-  those packages directly.
+  `device.WithRefreshToken()` and `webapp.WithRefreshToken()` for callers using those packages
+  directly.
 - `api.AccessToken` now records `ExpiresIn`, `ExpiresAt`, `RefreshTokenExpiresIn`, and
   `RefreshTokenExpiresAt`, with `IsExpired()` and `CanRefresh()` helpers.
 - `api.Refresh` exchanges a refresh token for a new token. A rejected refresh token is reported as
