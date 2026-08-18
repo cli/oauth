@@ -66,6 +66,16 @@ func WithAudience(audience string) AuthRequestEditorFn {
 	}
 }
 
+// WithOfflineAccess requests the "offline_access" scope, opting this authorization into receiving an
+// expiring access token and a refresh token. Servers that do not support expiring tokens ignore it
+// and issue a non-expiring token with no refresh token.
+func WithOfflineAccess() AuthRequestEditorFn {
+	return func(values *url.Values) {
+		scopes := strings.Fields(values.Get("scope"))
+		values.Set("scope", strings.Join(api.AppendOfflineAccess(scopes), " "))
+	}
+}
+
 // RequestCode initiates the authorization flow by requesting a code from uri.
 func RequestCode(c httpClient, uri string, clientID string, scopes []string,
 	optionalRequestParams ...AuthRequestEditorFn) (*CodeResponse, error) {

@@ -50,6 +50,10 @@ type BrowserParams struct {
 	Audience    string
 	LoginHandle string
 	AllowSignup bool
+	// RequestRefreshToken opts this authorization into receiving an expiring access token along with
+	// a refresh token, by requesting the "offline_access" scope. Servers that do not support
+	// expiring tokens ignore it and issue a non-expiring token with no refresh token.
+	RequestRefreshToken bool
 }
 
 // BrowserURL appends GET query parameters to baseURL and returns the url that the user should
@@ -64,10 +68,15 @@ func (flow *Flow) BrowserURL(baseURL string, params BrowserParams) (string, erro
 	flow.server.CallbackPath = ru.Path
 	flow.clientID = params.ClientID
 
+	scopes := params.Scopes
+	if params.RequestRefreshToken {
+		scopes = api.AppendOfflineAccess(scopes)
+	}
+
 	q := url.Values{}
 	q.Set("client_id", params.ClientID)
 	q.Set("redirect_uri", ru.String())
-	q.Set("scope", strings.Join(params.Scopes, " "))
+	q.Set("scope", strings.Join(scopes, " "))
 	q.Set("state", flow.state)
 
 	if params.Audience != "" {

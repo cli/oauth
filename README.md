@@ -16,6 +16,7 @@ To transparently enable OAuth authorization on _any GitHub host_ (e.g. GHES inst
 ## Usage
 
 - [OAuth Device flow with fallback](./examples_test.go)
+- [OAuth flow with refresh token support](./examples_test.go)
 - [manual OAuth Device flow](./device/examples_test.go)
 - [manual OAuth web application flow](./webapp/examples_test.go)
 
@@ -23,6 +24,90 @@ Applications that need more control over the user experience around authenticati
 
 In theory, these packages would enable authorization on any OAuth-enabled host. In practice, however, this was only tested for authorizing with GitHub.
 
+## Expiring access tokens
+
+GitHub OAuth apps can issue access tokens that expire after 8 hours, accompanied by a refresh token that is valid for 6 months. Rotating tokens limits the damage a leaked token can do. See [Expiring access tokens][gh-expiring].
+
+Support in this library is **opt-in and off by default**: existing code continues to receive non-expiring tokens and needs no changes.
+
+### 1. Opt in
+
+Set `RequestRefreshToken`, which requests the `offline_access` scope so that GitHub issues an expiring token even if your app isn't globally configured for them:
+
+```go
+flow := &oauth.Flow{
+    Host:     host,
+    ClientID: clientID,
+    Scopes:   []string{"repo", "read:org"},
+
+    RequestRefreshToken: true, // <- the only change needed to opt in
+}
+
+accessToken, err := flow.DetectFlow()
+```
+
+`offline_access` is not a normal scope: it doesn't widen the token's access and doesn't add anything to the authorization prompt.
+
+### 2. Persist the new fields
+
+Apps typically store only `accessToken.Token`. That is no longer enough — you must persist the refresh token and both expiration times, or the user will have to re-authorize every 8 hours:
+
+```go
+type storedCredentials struct {
+    Token                 string    `json:"token"`
+    RefreshToken          string    `json:"refresh_token,omitempty"`
+    ExpiresAt             time.Time `json:"expires_at,omitempty"`
+    RefreshTokenExpiresAt time.Time `json:"refresh_token_expires_at,omitempty"`
+}
+```
+
+If `RefreshToken` is empty, the server does not support expiring tokens. This is expected on GitHub Enterprise Server. Store the token as you always have and skip the rest of this section — **never assume a refresh token was returned**.
+
+### 3. Use a `TokenSource` instead of setting the header yourself
+
+Wrap the token in a `TokenSource` and build an HTTP client from it. The client attaches the `Authorization` header, refreshes the token when it expires, and — if the server rejects a request anyway — refreshes once and retries the request exactly once:
+
+```go
+src := oauth.NewTokenSource(accessToken, clientID, clientSecret, host.TokenURL)
+httpClient := oauth.NewHTTPClient(src)
+
+resp, err := httpClient.Get("https://api.github.com/user")
+```
+
+Replace any code that sets `Authorization` manually. Share one `TokenSource` across your app so a refresh performed for one request is seen by all the others.
+
+### 4. Save rotated tokens with `OnRefresh`
+
+**Refresh tokens are single-use.** A successful refresh immediately invalidates both the old access token and the old refresh token, so a rotated token that you fail to save is a token you have lost:
+
+```go
+src.OnRefresh = func(token *api.AccessToken) error {
+    return saveCredentials(token)
+}
+```
+
+If `OnRefresh` returns an error, that error is returned to the caller so the failure is visible, but the `TokenSource` keeps the refreshed token — discarding it would not bring back the old one. The callback runs without the `TokenSource` lock held, so it is safe for it to use a client built from the same source.
+
+### 5. Handle the failure cases
+
+| Situation | How to detect it | What to do |
+| --- | --- | --- |
+| Refresh token expired or already used | `errors.Is(err, api.ErrRefreshTokenInvalid)` | Send the user through the flow again |
+| Token expired, no refresh token available | `errors.Is(err, oauth.ErrNotRefreshable)` | Send the user through the flow again |
+| Server doesn't support expiring tokens | `accessToken.RefreshToken == ""` | Nothing — behaves exactly as before |
+
+### Adoption checklist
+
+1. Set `RequestRefreshToken: true` on your `Flow`.
+2. Extend your credential storage with `RefreshToken`, `ExpiresAt`, and `RefreshTokenExpiresAt`.
+3. Build a `TokenSource` from the stored token and replace manual `Authorization` headers with `oauth.NewHTTPClient`.
+4. Set `OnRefresh` to persist rotated tokens.
+5. Handle `api.ErrRefreshTokenInvalid` and `oauth.ErrNotRefreshable` by restarting the authorization flow.
+6. Confirm your app still works against a server that returns no refresh token.
+
+See [the complete example](./examples_test.go).
+
 
 [oauth-device]: https://oauth.net/2/device-flow/
 [gh-device]: https://docs.github.com/en/free-pro-team@latest/developers/apps/authorizing-oauth-apps#device-flow
+[gh-expiring]: https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps#expiring-access-tokens

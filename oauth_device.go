@@ -39,8 +39,13 @@ func (oa *Flow) DeviceFlow() (*api.AccessToken, error) {
 		host = parsedHost
 	}
 
+	scopes := oa.Scopes
+	if oa.RequestRefreshToken {
+		scopes = api.AppendOfflineAccess(scopes)
+	}
+
 	code, err := device.RequestCode(httpClient, host.DeviceCodeURL,
-		oa.ClientID, oa.Scopes, device.WithAudience(oa.Audience))
+		oa.ClientID, scopes, device.WithAudience(oa.Audience))
 	if err != nil {
 		return nil, err
 	}

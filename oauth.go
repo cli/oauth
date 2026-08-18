@@ -1,5 +1,13 @@
 // Package oauth is a library for Go client applications that need to perform OAuth authorization
 // against a server, typically GitHub.com.
+//
+// Flow performs the authorization itself, via either Device flow or Web application flow, and
+// returns an access token. By default that token does not expire.
+//
+// Applications may instead opt in to expiring tokens by setting Flow.RequestRefreshToken, in which
+// case the server issues a short-lived access token together with a refresh token. Pass the result
+// to a TokenSource and build an http.Client with NewHTTPClient to have the token attached to
+// outgoing requests and refreshed automatically as it expires.
 package oauth
 
 import (
@@ -76,6 +84,15 @@ type Flow struct {
 	ClientSecret string
 	// The localhost URI for web application flow callback, e.g. "http://127.0.0.1/callback".
 	CallbackURI string
+
+	// RequestRefreshToken opts this authorization into receiving an expiring access token along with
+	// a refresh token, by requesting the "offline_access" scope. Defaults to false, which preserves
+	// the traditional behavior of receiving a non-expiring token.
+	//
+	// Servers that do not support expiring tokens ignore the request and issue a non-expiring token
+	// with no refresh token, so callers must not assume that a refresh token was returned. Use
+	// TokenSource to manage refreshing the resulting token.
+	RequestRefreshToken bool
 
 	// Display a one-time code to the user. Receives the code and the browser URL as arguments. Defaults to printing the
 	// code to the user on Stdout with instructions to copy the code and to press Enter to continue in their browser.
