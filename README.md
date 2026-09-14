@@ -23,6 +23,45 @@ Applications that need more control over the user experience around authenticati
 
 In theory, these packages would enable authorization on any OAuth-enabled host. In practice, however, this was only tested for authorizing with GitHub.
 
+## Refresh tokens
+
+Set `RequestRefreshToken` to request an expiring access token and refresh token:
+
+```go
+flow := &oauth.Flow{
+    Host:                host,
+    ClientID:            clientID,
+    Scopes:              []string{"repo"},
+    RequestRefreshToken: true,
+}
+```
+
+Servers that do not support expiring tokens may ignore the request and return a token without expiration metadata
+or a refresh token.
+
+Before using an expired token, exchange its refresh token and persist the returned token pair:
+
+```go
+if token.IsExpired() && token.CanRefresh() {
+    token, err = oauth.Refresh(oauth.RefreshOptions{
+        Host:         host,
+        ClientID:     clientID,
+        ClientSecret: clientSecret,
+        RefreshToken: token.RefreshToken,
+        HTTPClient:   http.DefaultClient,
+    })
+    if err != nil {
+        return err
+    }
+    if err := saveToken(token); err != nil {
+        return err
+    }
+}
+```
+
+Refresh tokens are single use. A successful refresh invalidates the previous access token and refresh token, so
+applications must persist the returned replacements.
+
 
 [oauth-device]: https://oauth.net/2/device-flow/
 [gh-device]: https://docs.github.com/en/free-pro-team@latest/developers/apps/authorizing-oauth-apps#device-flow
