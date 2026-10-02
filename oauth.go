@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/cli/oauth/api"
@@ -76,6 +77,12 @@ type Flow struct {
 	ClientSecret string
 	// The localhost URI for web application flow callback, e.g. "http://127.0.0.1/callback".
 	CallbackURI string
+	// RequestRefreshToken opts this authorization into receiving an expiring access token and a
+	// refresh token by requesting the "offline_access" scope.
+	//
+	// Servers that do not support expiring tokens may ignore this request and return a token that
+	// does not expire and has no refresh token.
+	RequestRefreshToken bool
 
 	// Display a one-time code to the user. Receives the code and the browser URL as arguments. Defaults to printing the
 	// code to the user on Stdout with instructions to copy the code and to press Enter to continue in their browser.
@@ -101,4 +108,11 @@ func (oa *Flow) DetectFlow() (*api.AccessToken, error) {
 		return oa.WebAppFlow()
 	}
 	return accessToken, err
+}
+
+func withOfflineAccess(scopes []string) []string {
+	if slices.Contains(scopes, "offline_access") {
+		return scopes
+	}
+	return append(slices.Clone(scopes), "offline_access")
 }

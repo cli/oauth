@@ -28,10 +28,15 @@ func (oa *Flow) WebAppFlow() (*api.AccessToken, error) {
 		return nil, err
 	}
 
+	scopes := oa.Scopes
+	if oa.RequestRefreshToken {
+		scopes = withOfflineAccess(scopes)
+	}
+
 	params := webapp.BrowserParams{
 		ClientID:    oa.ClientID,
 		RedirectURI: oa.CallbackURI,
-		Scopes:      oa.Scopes,
+		Scopes:      scopes,
 		Audience:    oa.Audience,
 		AllowSignup: true,
 	}
