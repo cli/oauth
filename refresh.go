@@ -58,7 +58,7 @@ func Refresh(opts RefreshOptions) (*api.AccessToken, error) {
 	token, err := resp.AccessToken()
 	if err != nil {
 		var apiError *api.Error
-		if errors.As(err, &apiError) && apiError.Code == "bad_refresh_token" {
+		if errors.As(err, &apiError) && (apiError.Code == "bad_refresh_token" || apiError.Code == "invalid_grant") {
 			return nil, fmt.Errorf("%w: %w", ErrRefreshTokenInvalid, err)
 		}
 		return nil, err

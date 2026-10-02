@@ -34,16 +34,37 @@ flow := &oauth.Flow{
     Scopes:              []string{"repo"},
     RequestRefreshToken: true,
 }
+
+requestedAt := time.Now().UTC()
+token, err := flow.DetectFlow()
+if err != nil {
+    return err
+}
 ```
 
 Servers that do not support expiring tokens may ignore the request and return a token without expiration metadata
 or a refresh token.
 
-Before using an expired token, exchange its refresh token and persist the returned token pair:
+The expiry fields are relative durations. Calculate and persist an absolute expiration time when a
+token is issued:
 
 ```go
-if token.IsExpired() && token.CanRefresh() {
-    token, err = oauth.Refresh(oauth.RefreshOptions{
+expiresAt := time.Time{}
+if token.ExpiresIn > 0 {
+    expiresAt = requestedAt.Add(time.Duration(token.ExpiresIn) * time.Second)
+}
+if err := saveToken(token, expiresAt); err != nil {
+    return err
+}
+```
+
+After loading the token and its persisted expiration time, exchange an expired token's refresh token
+and persist the returned token pair:
+
+```go
+if token.RefreshToken != "" && !expiresAt.IsZero() && !time.Now().Before(expiresAt) {
+    requestedAt := time.Now().UTC()
+    refreshedToken, err := oauth.Refresh(oauth.RefreshOptions{
         Host:         host,
         ClientID:     clientID,
         ClientSecret: clientSecret,
@@ -53,9 +74,17 @@ if token.IsExpired() && token.CanRefresh() {
     if err != nil {
         return err
     }
-    if err := saveToken(token); err != nil {
+
+    refreshedExpiresAt := time.Time{}
+    if refreshedToken.ExpiresIn > 0 {
+        refreshedExpiresAt = requestedAt.Add(time.Duration(refreshedToken.ExpiresIn) * time.Second)
+    }
+    if err := saveToken(refreshedToken, refreshedExpiresAt); err != nil {
         return err
     }
+
+    token = refreshedToken
+    expiresAt = refreshedExpiresAt
 }
 ```
 
