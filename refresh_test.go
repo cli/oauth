@@ -133,6 +133,22 @@ func TestRefresh(t *testing.T) {
 			wantPosts:    1,
 		},
 		{
+			name: "standard invalid grant response",
+			client: &refreshClient{
+				status:      http.StatusBadRequest,
+				contentType: "application/x-www-form-urlencoded",
+				body:        "error=invalid_grant&error_description=The+refresh+token+is+invalid+or+expired.",
+			},
+			options: RefreshOptions{
+				Host:         host,
+				ClientID:     "CLIENTID",
+				RefreshToken: "OLDREFRESH",
+			},
+			wantInvalid:  true,
+			wantAPIError: "invalid_grant",
+			wantPosts:    1,
+		},
+		{
 			name: "other API error",
 			client: &refreshClient{
 				status:      http.StatusBadRequest,
