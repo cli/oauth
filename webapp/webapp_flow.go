@@ -11,8 +11,9 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
-
+	"strconv"
 	"github.com/cli/oauth/api"
 )
 
@@ -29,7 +30,20 @@ type Flow struct {
 
 // InitFlow creates a new Flow instance by detecting a locally available port number.
 func InitFlow() (*Flow, error) {
-	server, err := bindLocalServer()
+	
+	portStr := os.Getenv("GH_OAUTH_PORT")
+	port := 0
+
+
+	if portStr != "" {
+		var err error
+		port, err = strconv.Atoi(portStr)
+		if err != nil {
+			port = 0
+		}
+	}
+	
+	server, err := bindLocalServerWithPort(port)
 	if err != nil {
 		return nil, err
 	}
