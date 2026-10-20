@@ -23,6 +23,73 @@ Applications that need more control over the user experience around authenticati
 
 In theory, these packages would enable authorization on any OAuth-enabled host. In practice, however, this was only tested for authorizing with GitHub.
 
+## Refresh tokens
+
+Set `RequestRefreshToken` to request an expiring access token and refresh token:
+
+```go
+flow := &oauth.Flow{
+    Host:                host,
+    ClientID:            clientID,
+    Scopes:              []string{"repo"},
+    RequestRefreshToken: true,
+}
+
+requestedAt := time.Now().UTC()
+token, err := flow.DetectFlow()
+if err != nil {
+    return err
+}
+```
+
+Servers that do not support expiring tokens may ignore the request and return a token without expiration metadata
+or a refresh token.
+
+The expiry fields are relative durations. Calculate and persist an absolute expiration time when a
+token is issued:
+
+```go
+expiresAt := time.Time{}
+if token.ExpiresIn > 0 {
+    expiresAt = requestedAt.Add(token.ExpiresIn)
+}
+if err := saveToken(token, expiresAt); err != nil {
+    return err
+}
+```
+
+After loading the token and its persisted expiration time, exchange an expired token's refresh token
+and persist the returned token pair:
+
+```go
+if token.RefreshToken != "" && !expiresAt.IsZero() && !time.Now().Before(expiresAt) {
+    requestedAt := time.Now().UTC()
+    refreshedToken, err := oauth.Refresh(oauth.RefreshOptions{
+        Host:         host,
+        ClientID:     clientID,
+        ClientSecret: clientSecret,
+        RefreshToken: token.RefreshToken,
+        HTTPClient:   http.DefaultClient,
+    })
+    if err != nil {
+        return err
+    }
+
+    refreshedExpiresAt := time.Time{}
+    if refreshedToken.ExpiresIn > 0 {
+        refreshedExpiresAt = requestedAt.Add(refreshedToken.ExpiresIn)
+    }
+    if err := saveToken(refreshedToken, refreshedExpiresAt); err != nil {
+        return err
+    }
+
+    token = refreshedToken
+    expiresAt = refreshedExpiresAt
+}
+```
+
+GitHub rotates refresh tokens on every refresh, so always persist the refresh token returned by `Refresh`. Rotation is optional in OAuth, and when a server omits a new refresh token, `Refresh` returns the one that was passed in.
+
 
 [oauth-device]: https://oauth.net/2/device-flow/
 [gh-device]: https://docs.github.com/en/free-pro-team@latest/developers/apps/authorizing-oauth-apps#device-flow

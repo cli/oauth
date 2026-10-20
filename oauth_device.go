@@ -39,8 +39,7 @@ func (oa *Flow) DeviceFlow() (*api.AccessToken, error) {
 		host = parsedHost
 	}
 
-	code, err := device.RequestCode(httpClient, host.DeviceCodeURL,
-		oa.ClientID, oa.Scopes, device.WithAudience(oa.Audience))
+	code, err := device.RequestCode(httpClient, host.DeviceCodeURL, oa.ClientID, oa.requestedScopes(), device.WithAudience(oa.Audience))
 	if err != nil {
 		return nil, err
 	}
