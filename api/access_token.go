@@ -2,6 +2,7 @@ package api
 
 import (
 	"strconv"
+	"time"
 )
 
 // AccessToken is an OAuth access token.
@@ -14,12 +15,11 @@ type AccessToken struct {
 	Type string
 	// Space-separated list of OAuth scopes that this token grants.
 	Scope string
-	// The number of seconds from issuance until Token expires. Zero means the server did not return
-	// expiration metadata.
-	ExpiresIn int
-	// The number of seconds from issuance until RefreshToken expires. Zero means the server did not
-	// return expiration metadata.
-	RefreshTokenExpiresIn int
+	// The time from issuance until Token expires. Zero means the server did not return expiration metadata.
+	ExpiresIn time.Duration
+	// The time from issuance until RefreshToken expires. Zero means the server did not return expiration
+	// metadata.
+	RefreshTokenExpiresIn time.Duration
 }
 
 // AccessToken extracts the access token information from a server response.
@@ -37,11 +37,11 @@ func (f FormResponse) AccessToken() (*AccessToken, error) {
 	}
 
 	if expiresIn, err := strconv.Atoi(f.Get("expires_in")); err == nil && expiresIn > 0 {
-		token.ExpiresIn = expiresIn
+		token.ExpiresIn = time.Duration(expiresIn) * time.Second
 	}
 	if token.RefreshToken != "" {
 		if expiresIn, err := strconv.Atoi(f.Get("refresh_token_expires_in")); err == nil && expiresIn > 0 {
-			token.RefreshTokenExpiresIn = expiresIn
+			token.RefreshTokenExpiresIn = time.Duration(expiresIn) * time.Second
 		}
 	}
 

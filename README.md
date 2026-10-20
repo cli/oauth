@@ -51,7 +51,7 @@ token is issued:
 ```go
 expiresAt := time.Time{}
 if token.ExpiresIn > 0 {
-    expiresAt = requestedAt.Add(time.Duration(token.ExpiresIn) * time.Second)
+    expiresAt = requestedAt.Add(token.ExpiresIn)
 }
 if err := saveToken(token, expiresAt); err != nil {
     return err
@@ -77,7 +77,7 @@ if token.RefreshToken != "" && !expiresAt.IsZero() && !time.Now().Before(expires
 
     refreshedExpiresAt := time.Time{}
     if refreshedToken.ExpiresIn > 0 {
-        refreshedExpiresAt = requestedAt.Add(time.Duration(refreshedToken.ExpiresIn) * time.Second)
+        refreshedExpiresAt = requestedAt.Add(refreshedToken.ExpiresIn)
     }
     if err := saveToken(refreshedToken, refreshedExpiresAt); err != nil {
         return err

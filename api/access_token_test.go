@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestFormResponse_AccessToken(t *testing.T) {
@@ -47,8 +48,8 @@ func TestFormResponse_AccessToken(t *testing.T) {
 				RefreshToken:          "AREFRESHTOKEN",
 				Type:                  "bearer",
 				Scope:                 "repo gist",
-				ExpiresIn:             28800,
-				RefreshTokenExpiresIn: 15897600,
+				ExpiresIn:             8 * time.Hour,
+				RefreshTokenExpiresIn: 15897600 * time.Second,
 			},
 			wantErr: nil,
 		},
