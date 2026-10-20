@@ -88,8 +88,7 @@ if token.RefreshToken != "" && !expiresAt.IsZero() && !time.Now().Before(expires
 }
 ```
 
-Refresh tokens are single use. A successful refresh invalidates the previous access token and refresh token, so
-applications must persist the returned replacements.
+GitHub rotates refresh tokens on every refresh, so always persist the refresh token returned by `Refresh`. Rotation is optional in OAuth, and when a server omits a new refresh token, `Refresh` returns the one that was passed in.
 
 
 [oauth-device]: https://oauth.net/2/device-flow/
