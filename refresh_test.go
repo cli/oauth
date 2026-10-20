@@ -42,16 +42,17 @@ func TestRefresh(t *testing.T) {
 	host := &Host{TokenURL: "https://example.com/token"}
 
 	tests := []struct {
-		name            string
-		client          *refreshClient
-		options         RefreshOptions
-		wantToken       string
-		wantForm        url.Values
-		wantPosts       int
-		wantInvalid     bool
-		wantAPIError    string
-		wantError       error
-		wantErrorString string
+		name             string
+		client           *refreshClient
+		options          RefreshOptions
+		wantToken        string
+		wantRefreshToken string
+		wantForm         url.Values
+		wantPosts        int
+		wantInvalid      bool
+		wantAPIError     string
+		wantError        error
+		wantErrorString  string
 	}{
 		{
 			name: "success with client secret",
@@ -66,7 +67,8 @@ func TestRefresh(t *testing.T) {
 				ClientSecret: "CLIENTSECRET",
 				RefreshToken: "OLDREFRESH",
 			},
-			wantToken: "NEWTOKEN",
+			wantToken:        "NEWTOKEN",
+			wantRefreshToken: "NEWREFRESH",
 			wantForm: url.Values{
 				"client_id":     {"CLIENTID"},
 				"client_secret": {"CLIENTSECRET"},
@@ -87,7 +89,29 @@ func TestRefresh(t *testing.T) {
 				ClientID:     "CLIENTID",
 				RefreshToken: "OLDREFRESH",
 			},
-			wantToken: "NEWTOKEN",
+			wantToken:        "NEWTOKEN",
+			wantRefreshToken: "NEWREFRESH",
+			wantForm: url.Values{
+				"client_id":     {"CLIENTID"},
+				"refresh_token": {"OLDREFRESH"},
+				"grant_type":    {"refresh_token"},
+			},
+			wantPosts: 1,
+		},
+		{
+			name: "omitted refresh token keeps the previous one",
+			client: &refreshClient{
+				status:      http.StatusOK,
+				contentType: "application/x-www-form-urlencoded",
+				body:        "access_token=NEWTOKEN&expires_in=28800",
+			},
+			options: RefreshOptions{
+				Host:         host,
+				ClientID:     "CLIENTID",
+				RefreshToken: "OLDREFRESH",
+			},
+			wantToken:        "NEWTOKEN",
+			wantRefreshToken: "OLDREFRESH",
 			wantForm: url.Values{
 				"client_id":     {"CLIENTID"},
 				"refresh_token": {"OLDREFRESH"},
@@ -189,6 +213,9 @@ func TestRefresh(t *testing.T) {
 				}
 				if token.Token != tt.wantToken {
 					t.Errorf("Token = %q, want %q", token.Token, tt.wantToken)
+				}
+				if token.RefreshToken != tt.wantRefreshToken {
+					t.Errorf("RefreshToken = %q, want %q", token.RefreshToken, tt.wantRefreshToken)
 				}
 			} else if err == nil {
 				t.Fatal("Refresh() error = nil")

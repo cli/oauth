@@ -27,7 +27,9 @@ type RefreshOptions struct {
 	HTTPClient httpClient
 }
 
-// Refresh exchanges a refresh token for a new access token and refresh token.
+// Refresh exchanges a refresh token for a new access token and refresh token. If the server omits a refresh token
+// from the response, the returned token carries the refresh token from opts, since RFC 6749 section 6 allows the
+// server to keep the previous one valid. Applications that require rotation must enforce it themselves.
 func Refresh(opts RefreshOptions) (*api.AccessToken, error) {
 	if opts.Host == nil {
 		return nil, errors.New("host is required")
@@ -62,6 +64,10 @@ func Refresh(opts RefreshOptions) (*api.AccessToken, error) {
 			return nil, fmt.Errorf("%w: %w", ErrRefreshTokenInvalid, err)
 		}
 		return nil, err
+	}
+
+	if token.RefreshToken == "" {
+		token.RefreshToken = opts.RefreshToken
 	}
 
 	return token, nil
