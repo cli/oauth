@@ -110,6 +110,14 @@ func (oa *Flow) DetectFlow() (*api.AccessToken, error) {
 	return accessToken, err
 }
 
+// requestedScopes returns the scopes to request in either flow, adding offline_access when a refresh token is wanted.
+func (oa *Flow) requestedScopes() []string {
+	if oa.RequestRefreshToken {
+		return withOfflineAccess(oa.Scopes)
+	}
+	return oa.Scopes
+}
+
 func withOfflineAccess(scopes []string) []string {
 	if slices.Contains(scopes, "offline_access") {
 		return scopes
